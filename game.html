@@ -139,8 +139,8 @@
 						"parado": 10,
 						"agachado": 13,
 						"andar": [4, 9, "parado", 0.3],
-						"pular": [14, 18, "parado", 0.3],
-						"saltar": [14, 18, "parado", 0.3],
+						"pular": [14, 18, "pular", 0.3],
+						"saltar": [14, 18, "saltar", 0.3],
 						"morreu": [19, 27, 0.3],
 						"agachar": [10, 13, "agachado", 0.7],
 						"atirar": {
@@ -333,6 +333,14 @@
 						personagem.subir();
 						break;
 
+					case KEYS.UP:
+
+						break;
+
+					case KEYS.SPACE:
+
+						break;
+
 					default:
 						_personagem.gotoAndStop("parado");
 
@@ -392,6 +400,8 @@
 
 				speed: 10,
 				life: 100,
+				saltoX: 350,
+				saltoY: 250,
 
 				andar: function(dir){
 
@@ -442,8 +452,72 @@
 
 				},
 
-				pular: function(){},
-				saltar: function(){}
+				pular: function(){
+
+					var animationSpeed = 350;
+
+					createjs.Tween.get(_personagem).to({
+
+						y: cheight - chao - personagem.saltoY
+
+					}, animationSpeed)
+
+					.call(function(){
+
+						createjs.Tween.get(_personagem).to({
+
+							y: cheight - chao - 83
+
+						}, animationSpeed)
+
+						.call(function(){
+
+							_personagem.gotoAndStop("parado");
+
+						});
+
+					});
+
+				},
+
+				saltar: function(){
+
+					var animationSpeed = 250;
+					var _x = _personagem.x - (personagem.saltoX / 2);
+
+					if(_personagem.scaleX == 1)
+						_x = _personagem.x + (personagem.saltoX / 2);
+
+					createjs.Tween.get(_personagem).to({
+
+						x: _x,
+						y: cheight - chao - personagem.saltoY
+
+					}, animationSpeed)
+
+					.call(function(){
+
+						_x = _personagem.x - (personagem.saltoX / 2);
+
+						if(_personagem.scaleX == 1)
+							_x = _personagem.x + (personagem.saltoX / 2)
+
+						createjs.Tween.get(_personagem).to({
+
+							x: _x,
+							y: cheight - chao - 83
+
+						}, animationSpeed)
+
+						.call(function(){
+
+							_personagem.gotoAndStop("parado");
+
+						});
+
+					});
+
+				}			
 
 			},
 
@@ -461,7 +535,11 @@
 
 						var tiro = new createjs.Bitmap(tiroImg);
 						tiro.x = _personagem.x + 62;
-						tiro.y = _personagem.y + 33;
+						tiro.y = _personagem.y + 25;
+						tiro.scaleX = _personagem.scaleX;
+
+						if(tiro.scaleX == -1)
+							tiro.x = _personagem.x;
 
 						tiros._tiros.push(tiro);
 
@@ -509,14 +587,14 @@
 
 					for(var i = 0; i < this._tiros.length; i++){
 				
-						if(this._tiros[i].x > canvasFim || this.alvo(i)){
+						if(this._tiros[i].x < canvasInicio || this._tiros[i].x > canvasFim || this.alvo(i)){
 							
 							traduzidos.removeChild(this._tiros[i]);
 							this._tiros.splice(i,1);
 						
 						}else{
 						
-							this._tiros[i].x += this.speed;
+							this._tiros[i].x += this.speed * this._tiros[i].scaleX;
 						
 						}
 						
