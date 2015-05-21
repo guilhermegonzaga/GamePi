@@ -79,6 +79,8 @@
 					{src: "virus.gif", id: "virus"},
 					{src: "personagem.png", id: "personagem"},
 					{src: "bala.png", id: "tiro"},
+					{src: "coin.png", id: "moeda"},
+					{src: "municao.png", id: "municao"},
 					{src: "bg.jpg", id: "bg"},
 					{src: "jogar.png", id: "jogar"},
 					{src: "creditos.png", id: "creditos"},
@@ -94,16 +96,9 @@
 
 			function iniciar(){
 
-				/* Cria o cenário */
-				cenarioImg = loader.getResult("cenario");
-				cenario = new createjs.Shape();
-
 				/* Cria o background do menu */
 				bgImg = loader.getResult("bg");
 				bg = new createjs.Shape();
-
-				/* Matrix 2d */
-				matrix = new createjs.Matrix2D();
 
 				/* Animações do personagem */
 				spritePersonagem = new createjs.SpriteSheet({
@@ -207,30 +202,46 @@
 					}
 				});
 
-				/* Definições iniciais do personagem */
-				_personagem = new createjs.Sprite(spritePersonagem, "parado");
-				_personagem.x = 96 + marginX;
-				_personagem.y = cheight - chao - 83;
-
-				/* Imagens */
-				tiroImg = loader.getResult("tiro");
+				/* Animações das moedas */
+				spriteMoeda = new createjs.SpriteSheet({
+					framerate: 20,
+					images: [loader.getResult("moeda")],
+					frames: {width: 44, height: 40},
+					animations: {
+						"rodando": [0, 8, "rodando", 0.8],
+					}
+				});
 
 				/* Background do menu */
-				bg.graphics.clear().beginBitmapFill(bgImg, "repeat-x").drawRect(0, 0, cwidth, cheight);
+				bg.graphics.beginBitmapFill(bgImg, "repeat-x").drawRect(0, 0, cwidth, cheight);
 
-				/* Mostra o menu */
-				menu.show();
+				/* Inicia o menu */
+				menu.iniciar();
+				creditos.iniciar();
 
 			}
 
 			function startGame(){
 
 				/* Remove tudo da canvas */
+				palco.removeAllEventListeners();
 				palco.removeAllChildren();
+
+				/* Cria o cenário */
+				cenarioImg = loader.getResult("cenario");
+				cenario = new createjs.Shape();
+
+				/* Matrix 2d */
+				matrix = new createjs.Matrix2D();
 
 				/* Cria um container para itens de coordenadas traduzidas */
 				traduzidos = new createjs.Container();
-				traduzidos.addChild(_personagem);
+
+				/* Inicia os objetos */
+				personagem.iniciar();
+				virus.iniciar(5);
+				tiros.iniciar();
+				municao.iniciar();
 
 				/* Insere na canvas os itens de coordenadas traduzidas */
 				palco.addChild(cenario,traduzidos);
@@ -257,6 +268,11 @@
    				/* Atualiza objetos */
    				tiros.update();
    				virus.update();
+   				fogo.update();
+   				vida.update();
+   				municao.update();
+   				moedas.update();
+   				score.update();
 
    				/* Atualiza a canvas */
 				palco.update(event);
@@ -371,41 +387,48 @@
 				title: new createjs.Text(nome, "100px Comic Sans", "#fff"),
 				shadow: new createjs.Shadow("red", 8, 8, 15),
 
+				iniciar: function(){
+
+					/* Sombra do texto */
+					this.title.shadow = this.shadow;
+
+					/* Definições do texto */
+					this.title.x = (cwidth - this.title.getBounds().width) / 2;
+					this.title.y = 100;
+
+					/* Imagens do menu */
+					this.startButton = new createjs.Bitmap(loader.getResult(this.startButton));
+					this.creditosButton = new createjs.Bitmap(loader.getResult(this.creditosButton));
+
+					/* Definições do botão do menu */
+					this.startButton.x = ((cwidth - this.startButton.getBounds().width) / 2) - 150;
+					this.startButton.y = 400;
+
+					/* Definições do botão de creditos */
+					this.creditosButton.x = ((cwidth - this.creditosButton.getBounds().width) / 2) + 150;
+					this.creditosButton.y = 400;
+
+					/* Mostra o menu */
+					this.show();
+
+				},
+
 				show: function(){
 
-					if(typeof this.startButton == 'string'){
+					/* Registra a ação para startGame() */
+					this.startButton.addEventListener("click", startGame);
 
-						/* Sombra do texto */
-						this.title.shadow = this.shadow;
-
-						/* Definições do texto */
-						this.title.x = (cwidth - this.title.getBounds().width) / 2;
-						this.title.y = 100;
-
-						/* Imagens do menu */
-						this.startButton = new createjs.Bitmap(loader.getResult(this.startButton));
-						this.creditosButton = new createjs.Bitmap(loader.getResult(this.creditosButton));
-
-						/* Definições do botão do menu */
-						this.startButton.x = ((cwidth - this.startButton.getBounds().width) / 2) - 150;
-						this.startButton.y = 400;
-
-						/* Definições do botão de creditos */
-						this.creditosButton.x = ((cwidth - this.creditosButton.getBounds().width) / 2) + 150;
-						this.creditosButton.y = 400;
-
-						/* Registra a ação para startGame() */
-						this.startButton.addEventListener("click", startGame);
-
-						/* Registra a ação de creditosGame() */
-						this.creditosButton.addEventListener("click", function(){ creditos.show(); });
-
-					}
+					/* Registra a ação de creditosGame() */
+					this.creditosButton.addEventListener("click", function(){ creditos.show(); });
 
 					/* Adiciona as imagens no container menu */
 					this.container.addChild(bg, this.startButton, this.creditosButton, this.title);
 
+					/* Registra a ação para startGame() */
+					this.startButton.addEventListener("click", startGame);
+
 					/* Remove tudo da canvas */
+					palco.removeAllEventListeners();
 					palco.removeAllChildren();
 
 					/* Insere o container menu na canvas */
@@ -425,33 +448,34 @@
 				title: new createjs.Text("Créditos", "100px Comic Sans", "#fff"),
 				shadow: menu.shadow.clone(),
 
+				iniciar: function(){
+
+					/* Sombra do texto */
+					this.title.shadow = this.shadow;
+
+					/* Definições do texto */
+					this.title.x = (cwidth - this.title.getBounds().width) / 2;
+					this.title.y = 100;
+
+					/* Imagens dos creditos */
+					this.backButton = new createjs.Bitmap(loader.getResult(this.backButton));
+
+					/* Definições do botão de voltar */
+					this.backButton.x = (cwidth - this.backButton.getBounds().width) / 2;
+					this.backButton.y = 400;
+
+				},
+
 				show: function(){
 
-					if(typeof this.backButton == 'string'){
-
-						/* Sombra do texto */
-						this.title.shadow = this.shadow;
-
-						/* Definições do texto */
-						this.title.x = (cwidth - this.title.getBounds().width) / 2;
-						this.title.y = 100;
-
-						/* Imagens dos creditos */
-						this.backButton = new createjs.Bitmap(loader.getResult(this.backButton));
-
-						/* Definições do botão de voltar */
-						this.backButton.x = (cwidth - this.backButton.getBounds().width) / 2;
-						this.backButton.y = 400;
-
-						/* Registra a ação para voltar() */
-						this.backButton.addEventListener("click", function(){ menu.show(); });
-
-					}
+					/* Registra a ação para voltar() */
+					this.backButton.addEventListener("click", function(){ menu.show(); });
 
 					/* Adiciona as imagens no container creditos */
 					this.container.addChild(bg, this.backButton, this.title);
 
 					/* Remove tudo da canvas */
+					palco.removeAllEventListeners();
 					palco.removeAllChildren();
 
 					/* Insere o container menu na canvas */
@@ -475,6 +499,28 @@
 				saltoSpeed:250,
 				puloSpeed:350,
 
+				iniciar: function(){
+
+					_personagem = new createjs.Sprite(spritePersonagem, "parado");
+					_personagem.x = marginX;
+					_personagem.y = cheight - chao - personagem.height();
+
+					traduzidos.addChild(_personagem);
+
+				},
+
+				width: function(){
+
+					return spritePersonagem.getFrameBounds(_personagem.currentFrame).width;
+
+				},
+
+				height: function(){
+
+					return spritePersonagem.getFrameBounds(_personagem.currentFrame).height;
+
+				},
+
 				andar: function(dir){
 
 					if(dir == 'left'){
@@ -491,7 +537,7 @@
 
 						_personagem.scaleX = 1;
 
-						if(_personagem.x > (cwidth/2) - 62 + pos && pos < (cenarioImg.width*(3-1))){
+						if(_personagem.x + personagem.width() > (cwidth/2) + pos && pos < (cenarioImg.width*2)){
 
 							pos += this.speed;
 
@@ -502,7 +548,7 @@
 
 							_personagem.x += this.speed;
 
-						}else if(_personagem.x + this.speed <= canvasFim - 62 - marginX){
+						}else if(_personagem.x + personagem.width() + this.speed <= canvasFim - marginX){
 
 							_personagem.x += this.speed;
 
@@ -514,13 +560,17 @@
 
 				agachar: function(){
 
-					createjs.Tween.get(_personagem).to({y:460},130);
+					createjs.Tween.get(_personagem).to({y: 460}, 130);
 
 				},
 
 				subir: function(){
 
-					createjs.Tween.get(_personagem).to({y: cheight - chao - 83},130);
+					createjs.Tween.get(_personagem).to({
+
+						y: cheight - chao - personagem.height()
+
+					},130);
 
 				},
 
@@ -536,7 +586,7 @@
 
 						createjs.Tween.get(_personagem).to({
 
-							y: cheight - chao - 83
+							y: cheight - chao - personagem.height()
 
 						}, personagem.puloSpeed)
 
@@ -552,7 +602,7 @@
 
 				saltar: function(){
 
-					if((_personagem.x + personagem.saltoX <= canvasFim - marginX) && (_personagem.scaleX == 1) || (_personagem.x - personagem.saltoX >= canvasInicio + marginX) && (_personagem.scaleX == -1)){
+					if((_personagem.x + personagem.width() + personagem.saltoX <= canvasFim - marginX) && (_personagem.scaleX == 1) || (_personagem.x - personagem.saltoX >= canvasInicio + marginX) && (_personagem.scaleX == -1)){
 
 						var _x = _personagem.x - (personagem.saltoX / 2);
 
@@ -571,12 +621,12 @@
 							_x = _personagem.x - (personagem.saltoX / 2);
 
 							if(_personagem.scaleX == 1)
-								_x = _personagem.x + (personagem.saltoX / 2)
+								_x = _personagem.x + (personagem.saltoX / 2);
 
 							createjs.Tween.get(_personagem).to({
 
 								x: _x,
-								y: cheight - chao - 83
+								y: cheight - chao - personagem.height()
 
 							}, personagem.saltoSpeed)
 
@@ -603,20 +653,27 @@
 
 				_tiros: [],
 				qtd: 40,
-				speed: 35,
+				speed: 15,
 				damage: 1,
+				img: "tiro",
+
+				iniciar: function(){
+
+					this.img = loader.getResult(this.img);
+
+				},
 
 				novo: function(){
 
 					if(tiros.qtd > 0){
 
-						var tiro = new createjs.Bitmap(tiroImg);
-						tiro.x = _personagem.x + 62;
+						var tiro = new createjs.Bitmap(tiros.img);
+						tiro.x = _personagem.x;
 						tiro.y = _personagem.y + 25;
 						tiro.scaleX = _personagem.scaleX;
 
-						if(tiro.scaleX == -1)
-							tiro.x = _personagem.x;
+						if(tiro.scaleX == 1)
+							tiro.x = _personagem.x + personagem.width();
 
 						tiros._tiros.push(tiro);
 
@@ -632,31 +689,34 @@
 
 				alvo: function(tiro){
 
+					var ret = false;
+
 					for(var i = 0; i < virus._virus.length; i++){
 
 						var bounds = spriteVirus.getFrameBounds(virus._virus[i].currentFrame);
 
-						if(colidir(this._tiros[tiro], virus._virus[i], tiroImg, bounds)){
+						if(colidir(this._tiros[tiro], virus._virus[i], this.img, bounds)){
 
 							virus._virus[i].life -= this.damage;
 
 							if(virus._virus[i].life <= 0){
 
 								traduzidos.removeChild(virus._virus[i]);
+
+								moedas.novo(virus._virus[i].x, virus._virus[i].y, virus._virus[i].coins);
+
 								virus._virus.splice(i,1);
 
 							}
 
-							return true;
+							ret = true;
 							break;
-
-						}else{
-
-							return false;
 
 						}
 
 					}
+
+					return ret;
 
 				},
 
@@ -688,17 +748,31 @@
 				speed: 0.5,
 				life: 10,
 
-				novo: function(){
+				iniciar: function(qtd){
 
-					var vr = new createjs.Sprite(spriteVirus, "andar");
-					vr.x = canvasFim + marginX;
-					vr.y = cheight - chao - 76;
-					vr.dir = -1;
-					vr.life = this.life;
+					this.novo(qtd);
 
-					this._virus.push(vr);
+				},
 
-					traduzidos.addChild(vr);
+				novo: function(qtd){
+
+					for(var i = 0; i < qtd; i++){
+
+						var vr = new createjs.Sprite(spriteVirus, "andar");
+						vr.x = canvasFim + (i * 200);
+						vr.y = cheight - chao - 76;
+						vr.dir = -1;
+						vr.life = this.life;
+						vr.coins = 100;
+
+						vr.width = function(){ return spriteVirus.getFrameBounds(this.currentFrame).width; };
+						vr.height = function(){ return spriteVirus.getFrameBounds(this.currentFrame).height; };
+
+						this._virus.push(vr);
+
+						traduzidos.addChild(vr);
+
+					}
 
 				},
 
@@ -727,6 +801,181 @@
 					}
 
 				}
+
+			},
+
+			fogo = {
+
+				_fogos: [],
+				damage: 1,
+				speed: 15,
+
+				novo:function(){},
+
+				alvo: function(){},
+
+				update: function(){}
+
+			},
+
+			vida = {
+
+				_vidas: [],
+				value: 1,
+				time: 40,
+
+				novo: function(){},
+
+				pegou: function(){},
+
+				update: function(){}
+
+			},
+
+			municao = {
+
+				_cx: [],
+				value: 10,
+				time: 40,
+				img: "municao",
+
+				iniciar: function(){
+
+					this.img = loader.getResult(this.img);
+
+				},
+
+				novo: function(){
+
+					var m = new createjs.Bitmap(municao.img);
+					m.x = getRandom((canvasInicio + marginX),(canvasFim - marginX - this.img.width));
+					m.y = cheight - chao - this.img.height;
+
+					var i = this._cx.push(m);
+
+					setTimeout(function(){
+
+						traduzidos.removeChild(m);
+						municao._cx.splice(i - 1, 1);
+
+					 }, this.time * 1000);
+
+					traduzidos.addChild(m);
+
+				},
+
+				pegou: function(c){
+
+					var bounds = spritePersonagem.getFrameBounds(_personagem.currentFrame);
+
+					if(colidir(this._cx[c], _personagem, this.img, bounds)){
+
+						tiros.qtd += this.value;
+
+						return true;
+
+					}else{
+
+						return false;
+
+					}
+
+				},
+
+				update: function(){
+
+					if(this._cx.length == 0 && tiros.qtd == 0){
+
+						this.novo();
+
+					}else{
+
+						for(var i = 0; i < this._cx.length; i++){
+
+							if(this._cx[i].x + this.img.width < canvasInicio || this._cx[i].x > canvasFim || this.pegou(i)){
+
+								traduzidos.removeChild(this._cx[i]);
+								this._cx.splice(i,1);
+
+							}
+
+						}
+
+					}
+
+				}
+
+			},
+
+			moedas = {
+
+				_moedas: [],
+				time: 40,
+
+				novo: function(x, y, coins){
+
+					var m = new createjs.Sprite(spriteMoeda, "rodando");;
+					m.x = x;
+					m.y = y;
+					m.value = coins;
+
+					m.width = function(){ return spriteMoeda.getFrameBounds(this.currentFrame).width; };
+					m.height = function(){ return spriteMoeda.getFrameBounds(this.currentFrame).height; };
+
+					var i = this._moedas.push(m);
+
+					setTimeout(function(){
+
+						traduzidos.removeChild(m);
+						moedas._moedas.splice(i - 1, 1);
+
+					 }, this.time * 1000);
+
+					traduzidos.addChild(m);
+
+				},
+
+				pegou: function(m){
+
+					var bounds = spriteMoeda.getFrameBounds(this._moedas[m].currentFrame);
+					var bounds2 = spritePersonagem.getFrameBounds(_personagem.currentFrame);
+
+					if(colidir(this._moedas[m], _personagem, bounds, bounds2)){
+
+						score.value += this._moedas[m].value;
+
+						return true;
+
+					}else{
+
+						return false;
+
+					}
+
+				},
+
+				update: function(){
+
+					for(var i = 0; i < this._moedas.length; i++){
+
+						if(this._moedas[i].x + this._moedas[i].width() < canvasInicio || this._moedas[i].x > canvasFim || this.pegou(i)){
+
+							traduzidos.removeChild(this._moedas[i]);
+							this._moedas.splice(i,1);
+
+						}
+
+					}
+
+				}
+
+			},
+
+			score = {
+
+				value: 0,
+
+				update: function(){}
 
 			};
 
