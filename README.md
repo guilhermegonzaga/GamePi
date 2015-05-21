@@ -1,6 +1,7 @@
 #Game
 <p><b>Nome:</b> Hacker vs. Vírus</p>
 <p><b>Estilo:</b> Plataforma</p>
+<p><b>Status:</b> Em desenvolvimento</p>
 
 # Projeto
 <p>Jogo desenvolvido em HTML 5 e Javascript para apresentação na faculdade.</p>
