@@ -23,6 +23,7 @@
 
 			var palco, loader, cwidth,
 
+			nome = "Hacker vs. Vírus",
 			cheight = 580,
 			marginX = 20,
 			chao = 55,
@@ -31,7 +32,7 @@
 			canvasFim = 0,
 
 			KEYS = {
-				LEFT: 37, 
+				LEFT: 37,
 				RIGHT: 39,
 				UP: 38,
 				DOWN: 40,
@@ -50,7 +51,7 @@
 
 				/* Salva o tamanho da tela */
 				cwidth = window.innerWidth;
-				
+
 				/* Trava em no máximo 1920px */
 				if(cwidth > 1920)
 					cwidth = 1920;
@@ -96,10 +97,14 @@
 				/* Cria o cenário */
 				cenarioImg = loader.getResult("cenario");
 				cenario = new createjs.Shape();
+
+				/* Cria o background do menu */
 				bgImg = loader.getResult("bg");
 				bg = new createjs.Shape();
+
+				/* Matrix 2d */
 				matrix = new createjs.Matrix2D();
-				
+
 				/* Animações do personagem */
 				spritePersonagem = new createjs.SpriteSheet({
 					framerate: 15,
@@ -121,7 +126,7 @@
 						[77,192,60,78],
 						[154,208,60,63],
 						[231,210,60,61],
-						
+
 						[0,292,60,95],
 						[76,292,61,95],
 						[153,293,63,85],
@@ -210,9 +215,12 @@
 				/* Imagens */
 				tiroImg = loader.getResult("tiro");
 
+				/* Background do menu */
+				bg.graphics.clear().beginBitmapFill(bgImg, "repeat-x").drawRect(0, 0, cwidth, cheight);
+
 				/* Mostra o menu */
 				menu.show();
-				
+
 			}
 
 			function startGame(){
@@ -298,7 +306,7 @@
 					case KEYS.DOWN:
 
 						if(KEYS.DOWN in KEYS._keys == false){
-							
+
 							_personagem.gotoAndPlay("agachar");
 							personagem.agachar();
 
@@ -309,7 +317,7 @@
 					case KEYS.SPACE:
 
 						if(KEYS.SPACE in KEYS._keys == false){
-							
+
 							_personagem.gotoAndPlay("saltar");
 							_personagem.on("animationend",function(){ delete KEYS._keys[KEYS.SPACE]; });
 
@@ -357,42 +365,45 @@
 			/* Menu */
 			var menu = {
 
-				container: null,
+				container: new createjs.Container(),
 				startButton: "jogar",
-				creditosButton: "creditos",			
+				creditosButton: "creditos",
+				title: new createjs.Text(nome, "100px Comic Sans", "#fff"),
+				shadow: new createjs.Shadow("red", 8, 8, 15),
 
 				show: function(){
 
-					if(this.container === null){
+					if(typeof this.startButton == 'string'){
 
-						/* Background */
-						bg.graphics.beginBitmapFill(bgImg, "repeat-x").drawRect(0, 0, bgImg.width, bgImg.height);
+						/* Sombra do texto */
+						this.title.shadow = this.shadow;
+
+						/* Definições do texto */
+						this.title.x = (cwidth - this.title.getBounds().width) / 2;
+						this.title.y = 100;
 
 						/* Imagens do menu */
 						this.startButton = new createjs.Bitmap(loader.getResult(this.startButton));
 						this.creditosButton = new createjs.Bitmap(loader.getResult(this.creditosButton));
 
 						/* Definições do botão do menu */
-						this.startButton.x = 250;
-						this.startButton.y = 450;
+						this.startButton.x = ((cwidth - this.startButton.getBounds().width) / 2) - 150;
+						this.startButton.y = 400;
 
 						/* Definições do botão de creditos */
-						this.creditosButton.x = 550;
-						this.creditosButton.y = 450;
+						this.creditosButton.x = ((cwidth - this.creditosButton.getBounds().width) / 2) + 150;
+						this.creditosButton.y = 400;
 
-						/* Cria o container menu */
-						this.container = new createjs.Container();
+						/* Registra a ação para startGame() */
+						this.startButton.addEventListener("click", startGame);
+
+						/* Registra a ação de creditosGame() */
+						this.creditosButton.addEventListener("click", function(){ creditos.show(); });
 
 					}
 
 					/* Adiciona as imagens no container menu */
-					this.container.addChild(bg, this.startButton, this.creditosButton);
-
-					/* Registra a ação para startGame() */
-					this.startButton.addEventListener("click", startGame);
-
-					/* Registra a ação de creditosGame() */
-					this.creditosButton.addEventListener("click", function(){ creditos.show(); });
+					this.container.addChild(bg, this.startButton, this.creditosButton, this.title);
 
 					/* Remove tudo da canvas */
 					palco.removeAllChildren();
@@ -409,33 +420,36 @@
 
 			creditos = {
 
-				container: null,
+				container: new createjs.Container(),
 				backButton: "back",
+				title: new createjs.Text("Créditos", "100px Comic Sans", "#fff"),
+				shadow: menu.shadow.clone(),
 
 				show: function(){
 
-					if(this.container === null){
+					if(typeof this.backButton == 'string'){
 
-						/* Background */
-						bg.graphics.beginBitmapFill(bgImg, "repeat-x").drawRect(0, 0, bgImg.width, bgImg.height);
+						/* Sombra do texto */
+						this.title.shadow = this.shadow;
+
+						/* Definições do texto */
+						this.title.x = (cwidth - this.title.getBounds().width) / 2;
+						this.title.y = 100;
 
 						/* Imagens dos creditos */
 						this.backButton = new createjs.Bitmap(loader.getResult(this.backButton));
 
 						/* Definições do botão de voltar */
-						this.backButton.x = 400;
-						this.backButton.y = 450;
+						this.backButton.x = (cwidth - this.backButton.getBounds().width) / 2;
+						this.backButton.y = 400;
 
-						/* Cria o container creditos */
-						this.container = new createjs.Container();
+						/* Registra a ação para voltar() */
+						this.backButton.addEventListener("click", function(){ menu.show(); });
 
 					}
 
 					/* Adiciona as imagens no container creditos */
-					this.container.addChild(bg, this.backButton);
-
-					/* Registra a ação para voltar() */
-					this.backButton.addEventListener("click", function(){ menu.show(); });
+					this.container.addChild(bg, this.backButton, this.title);
 
 					/* Remove tudo da canvas */
 					palco.removeAllChildren();
@@ -478,7 +492,7 @@
 						_personagem.scaleX = 1;
 
 						if(_personagem.x > (cwidth/2) - 62 + pos && pos < (cenarioImg.width*(3-1))){
-				
+
 							pos += this.speed;
 
 							canvasInicio = pos;
@@ -487,11 +501,11 @@
 							matrix.translate(-this.speed,0);
 
 							_personagem.x += this.speed;
-						
+
 						}else if(_personagem.x + this.speed <= canvasFim - 62 - marginX){
-							
+
 							_personagem.x += this.speed;
-						
+
 						}
 
 					}
@@ -580,7 +594,7 @@
 
 					}
 
-				}			
+				}
 
 			},
 
@@ -649,18 +663,18 @@
 				update: function(){
 
 					for(var i = 0; i < this._tiros.length; i++){
-				
+
 						if(this._tiros[i].x < canvasInicio || this._tiros[i].x > canvasFim || this.alvo(i)){
-							
+
 							traduzidos.removeChild(this._tiros[i]);
 							this._tiros.splice(i,1);
-						
+
 						}else{
-						
+
 							this._tiros[i].x += this.speed * this._tiros[i].scaleX;
-						
+
 						}
-						
+
 					}
 
 				}
@@ -693,9 +707,9 @@
 				update: function(){
 
 					for(var i = 0; i < this._virus.length; i++){
-				
+
 						if(this._virus[i].x <= canvasInicio + marginX && this._virus[i].dir !== 1){
-							
+
 							this._virus[i].dir = 1;
 							this._virus[i].scaleX = -1;
 
@@ -703,13 +717,13 @@
 
 							this._virus[i].dir = -1;
 							this._virus[i].scaleX = 1;
-						
+
 						}else{
-						
+
 							this._virus[i].x += this.speed * this._virus[i].dir;
-						
+
 						}
-						
+
 					}
 
 				}
