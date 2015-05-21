@@ -70,7 +70,7 @@
 				palco = new createjs.Stage(canvas);
 
 				/* Habilita o uso de touch screen */
-				createjs.Touch.enable(palco);
+				//createjs.Touch.enable(palco);
 
 				/* Manifest: Imagens e sons a serem carregados */
 				manifest = [
@@ -78,8 +78,10 @@
 					{src: "virus.gif", id: "virus"},
 					{src: "personagem.png", id: "personagem"},
 					{src: "bala.png", id: "tiro"},
-					{src: "menu.png", id: "menu"},
-					{src: "button.png", id: "botao"}
+					{src: "bg.jpg", id: "bg"},
+					{src: "jogar.png", id: "jogar"},
+					{src: "creditos.png", id: "creditos"},
+					{src: "back.png", id: "back"}
 				];
 
 				/* Carrega o manifest e iniciar() o jogo */
@@ -94,6 +96,8 @@
 				/* Cria o cenário */
 				cenarioImg = loader.getResult("cenario");
 				cenario = new createjs.Shape();
+				bgImg = loader.getResult("bg");
+				bg = new createjs.Shape();
 				matrix = new createjs.Matrix2D();
 				
 				/* Animações do personagem */
@@ -354,33 +358,84 @@
 			var menu = {
 
 				container: null,
-				bgMenu: "menu",
-				startButton: "botao",				
+				startButton: "jogar",
+				creditosButton: "creditos",			
 
 				show: function(){
 
 					if(this.container === null){
 
+						/* Background */
+						bg.graphics.beginBitmapFill(bgImg, "repeat-x").drawRect(0, 0, bgImg.width, bgImg.height);
+
 						/* Imagens do menu */
-						this.bgMenu = new createjs.Bitmap(loader.getResult(this.bgMenu));
 						this.startButton = new createjs.Bitmap(loader.getResult(this.startButton));
+						this.creditosButton = new createjs.Bitmap(loader.getResult(this.creditosButton));
+
+						/* Definições do botão do menu */
+						this.startButton.x = 250;
+						this.startButton.y = 450;
+
+						/* Definições do botão de creditos */
+						this.creditosButton.x = 550;
+						this.creditosButton.y = 450;
 
 						/* Cria o container menu */
 						this.container = new createjs.Container();
 
-						/* Centraliza o container menu */
-						this.container.x = cwidth/2;
-						this.container.y = cheight/2;
-						this.container.regX = this.bgMenu.image.width/2;
-						this.container.regY = this.bgMenu.image.height/2;
-
 					}
 
 					/* Adiciona as imagens no container menu */
-					this.container.addChild(this.bgMenu,this.startButton);
+					this.container.addChild(bg, this.startButton, this.creditosButton);
 
 					/* Registra a ação para startGame() */
 					this.startButton.addEventListener("click", startGame);
+
+					/* Registra a ação de creditosGame() */
+					this.creditosButton.addEventListener("click", function(){ creditos.show(); });
+
+					/* Remove tudo da canvas */
+					palco.removeAllChildren();
+
+					/* Insere o container menu na canvas */
+					palco.addChild(this.container);
+
+					/* Atualizaa tela */
+					palco.update();
+
+				}
+
+			},
+
+			creditos = {
+
+				container: null,
+				backButton: "back",
+
+				show: function(){
+
+					if(this.container === null){
+
+						/* Background */
+						bg.graphics.beginBitmapFill(bgImg, "repeat-x").drawRect(0, 0, bgImg.width, bgImg.height);
+
+						/* Imagens dos creditos */
+						this.backButton = new createjs.Bitmap(loader.getResult(this.backButton));
+
+						/* Definições do botão de voltar */
+						this.backButton.x = 400;
+						this.backButton.y = 450;
+
+						/* Cria o container creditos */
+						this.container = new createjs.Container();
+
+					}
+
+					/* Adiciona as imagens no container creditos */
+					this.container.addChild(bg, this.backButton);
+
+					/* Registra a ação para voltar() */
+					this.backButton.addEventListener("click", function(){ menu.show(); });
 
 					/* Remove tudo da canvas */
 					palco.removeAllChildren();
@@ -402,6 +457,9 @@
 				life: 100,
 				saltoX: 350,
 				saltoY: 250,
+				puloY: 250,
+				saltoSpeed:250,
+				puloSpeed:350,
 
 				andar: function(dir){
 
@@ -454,13 +512,11 @@
 
 				pular: function(){
 
-					var animationSpeed = 350;
-
 					createjs.Tween.get(_personagem).to({
 
-						y: cheight - chao - personagem.saltoY
+						y: cheight - chao - personagem.puloY
 
-					}, animationSpeed)
+					}, personagem.puloSpeed)
 
 					.call(function(){
 
@@ -468,7 +524,7 @@
 
 							y: cheight - chao - 83
 
-						}, animationSpeed)
+						}, personagem.puloSpeed)
 
 						.call(function(){
 
@@ -482,40 +538,47 @@
 
 				saltar: function(){
 
-					var animationSpeed = 250;
-					var _x = _personagem.x - (personagem.saltoX / 2);
+					if((_personagem.x + personagem.saltoX <= canvasFim - marginX) && (_personagem.scaleX == 1) || (_personagem.x - personagem.saltoX >= canvasInicio + marginX) && (_personagem.scaleX == -1)){
 
-					if(_personagem.scaleX == 1)
-						_x = _personagem.x + (personagem.saltoX / 2);
-
-					createjs.Tween.get(_personagem).to({
-
-						x: _x,
-						y: cheight - chao - personagem.saltoY
-
-					}, animationSpeed)
-
-					.call(function(){
-
-						_x = _personagem.x - (personagem.saltoX / 2);
+						var _x = _personagem.x - (personagem.saltoX / 2);
 
 						if(_personagem.scaleX == 1)
-							_x = _personagem.x + (personagem.saltoX / 2)
+							_x = _personagem.x + (personagem.saltoX / 2);
 
 						createjs.Tween.get(_personagem).to({
 
 							x: _x,
-							y: cheight - chao - 83
+							y: cheight - chao - personagem.saltoY
 
-						}, animationSpeed)
+						}, personagem.saltoSpeed)
 
 						.call(function(){
 
-							_personagem.gotoAndStop("parado");
+							_x = _personagem.x - (personagem.saltoX / 2);
+
+							if(_personagem.scaleX == 1)
+								_x = _personagem.x + (personagem.saltoX / 2)
+
+							createjs.Tween.get(_personagem).to({
+
+								x: _x,
+								y: cheight - chao - 83
+
+							}, personagem.saltoSpeed)
+
+							.call(function(){
+
+								_personagem.gotoAndStop("parado");
+
+							});
 
 						});
 
-					});
+					}else{
+
+						_personagem.gotoAndStop("parado");
+
+					}
 
 				}			
 
@@ -526,7 +589,7 @@
 
 				_tiros: [],
 				qtd: 40,
-				speed: 15,
+				speed: 35,
 				damage: 1,
 
 				novo: function(){
