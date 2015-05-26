@@ -80,6 +80,8 @@
 					{src: "personagem.png", id: "personagem"},
 					{src: "bala.png", id: "tiro"},
 					{src: "coin.png", id: "moeda"},
+					{src: "health.png", id: "s2"},
+					{src: "power.png", id: "power"},
 					{src: "municao.png", id: "municao"},
 					{src: "bg.jpg", id: "bg"},
 					{src: "jogar.png", id: "jogar"},
@@ -212,6 +214,24 @@
 					}
 				});
 
+				spriteCoracao = new createjs.SpriteSheet({
+					framerate: 20,
+					images: [loader.getResult("s2")],
+					frames: {width: 40, height: 35},
+					animations: {
+						"efeito": [0, 7, "efeito", 0.3]
+					}
+				});
+
+				spritePower = new createjs.SpriteSheet({
+					framerate: 20,
+					images: [loader.getResult("power")],
+					frames: {width: 40, height: 40},
+					animations: {
+						"efeito": [0, 9, "efeito", 0.3]
+					}
+				});
+
 				/* Background do menu */
 				bg.graphics.beginBitmapFill(bgImg, "repeat-x").drawRect(0, 0, cwidth, cheight);
 
@@ -270,6 +290,7 @@
    				virus.update();
    				fogo.update();
    				vida.update();
+   				power.update();
    				municao.update();
    				moedas.update();
    				score.update();
@@ -644,6 +665,12 @@
 
 					}
 
+				},
+
+				power: function(){
+
+					console.log("power");
+
 				}
 
 			},
@@ -824,11 +851,140 @@
 				value: 1,
 				time: 40,
 
-				novo: function(){},
+				novo: function(){
 
-				pegou: function(){},
+					var c = new createjs.Sprite(spriteCoracao, "efeito");
+					c.x = getRandom((canvasInicio + marginX),(canvasFim - marginX - 40));
+					c.y = cheight - chao - 40;
 
-				update: function(){}
+					c.width = function(){ return spriteCoracao.getFrameBounds(this.currentFrame).width; };
+					c.height = function(){ return spriteCoracao.getFrameBounds(this.currentFrame).height; };
+
+					var i = this._vidas.push(c);
+
+					setTimeout(function(){
+
+						traduzidos.removeChild(c);
+						vida._vidas.splice(i - 1, 1);
+
+					 }, this.time * 1000);
+
+					traduzidos.addChild(c);
+
+				},
+
+				pegou: function(c){
+
+					var bounds1 = spriteCoracao.getFrameBounds(this._vidas[c].currentFrame);
+					var bounds2 = spritePersonagem.getFrameBounds(_personagem.currentFrame);
+
+					if(colidir(this._vidas[c], _personagem, bounds1, bounds2)){
+
+						personagem.life += this.value;
+
+						return true;
+
+					}else{
+
+						return false;
+
+					}
+
+				},
+
+				update: function(){
+
+					if(personagem.life <= 30 && this._vidas.length == 0){
+
+						this.novo();
+
+					}else{
+
+						for(var i = 0; i < this._vidas.length; i++){
+
+							if(this._vidas[i].x + this._vidas[i].width() < canvasInicio || this._vidas[i].x > canvasFim || this.pegou(i)){
+
+								traduzidos.removeChild(this._vidas[i]);
+								this._vidas.splice(i,1);
+
+							}
+
+						}
+
+					}
+
+				}
+
+			},
+
+			power = {
+
+				_px: [],
+				time: 40,
+
+				novo: function(){
+
+					var p = new createjs.Sprite(spritePower, "efeito");
+					p.x = getRandom((canvasInicio + marginX),(canvasFim - marginX - 40));
+					p.y = cheight - chao - 40;
+
+					p.width = function(){ return spritePower.getFrameBounds(this.currentFrame).width; };
+					p.height = function(){ return spritePower.getFrameBounds(this.currentFrame).height; };
+
+					var i = this._px.push(p);
+
+					setTimeout(function(){
+
+						traduzidos.removeChild(p);
+						power._px.splice(i - 1, 1);
+
+					 }, this.time * 1000);
+
+					traduzidos.addChild(p);
+
+				},
+
+				pegou: function(p){
+
+					var bounds1 = spritePower.getFrameBounds(this._px[p].currentFrame);
+					var bounds2 = spritePersonagem.getFrameBounds(_personagem.currentFrame);
+
+					if(colidir(this._px[p], _personagem, bounds1, bounds2)){
+
+						personagem.power();
+						
+						return true;
+
+					}else{
+
+						return false;
+
+					}
+
+				},
+
+				update: function(){
+
+					if(personagem.life <= 30 && this._px.length == 0){
+
+						this.novo();
+
+					}else{
+
+						for(var i = 0; i < this._px.length; i++){
+
+							if(this._px[i].x + this._px[i].width() < canvasInicio || this._px[i].x > canvasFim || this.pegou(i)){
+
+								traduzidos.removeChild(this._px[i]);
+								this._px.splice(i,1);
+
+							}
+
+						}
+
+					}
+
+				}
 
 			},
 
@@ -914,7 +1070,7 @@
 
 				novo: function(x, y, coins){
 
-					var m = new createjs.Sprite(spriteMoeda, "rodando");;
+					var m = new createjs.Sprite(spriteMoeda, "rodando");
 					m.x = x;
 					m.y = y;
 					m.value = coins;
