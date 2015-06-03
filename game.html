@@ -13,6 +13,8 @@
 
 		<script src="js/funcs.js"></script>
 
+		<script src="js/ndgmr.Collision.js"></script>
+
 		<title>Game PI</title>
 
 	</head>
@@ -21,8 +23,7 @@
 
 		<script>
 
-			var palco, loader, cwidth,
-
+			var
 			nome = "Hacker vs. Vírus",
 			cheight = 580,
 			marginX = 20,
@@ -32,10 +33,7 @@
 			canvasFim = 0,
 
 			KEYS = {
-				LEFT: 37,
-				RIGHT: 39,
 				UP: 38,
-				DOWN: 40,
 				SPACE: 32,
 				_keys: []
 			};
@@ -76,8 +74,8 @@
 					{src: "health.png", id: "s2"},
 					{src: "power.png", id: "power"},
 					{src: "municao.png", id: "municao"},
+					{src: "especial.png", id: "especial"},
 					{src: "fogo.png", id: "fogo"},
-					{src: "bg.jpg", id: "bg"},
 					{src: "jogar.png", id: "jogar"},
 					{src: "creditos.png", id: "creditos"},
 					{src: "back.png", id: "back"}
@@ -93,8 +91,9 @@
 			function iniciar(){
 
 				/* Cria o background do menu */
-				bgImg = loader.getResult("bg");
+				bgImg = loader.getResult("cenario");
 				bg = new createjs.Shape();
+				bg.alpha = 0.7;
 
 				/* Animações do personagem */
 				spritePersonagem = new createjs.SpriteSheet({
@@ -136,22 +135,13 @@
 						[304,511,92,39]
 					],
 					animations: {
-						"parado": 10,
-						"agachado": 13,
-						"andar": [4, 9, "parado", 0.3],
+						"andar": [4, 9, "andar", 0.3],
 						"pular": [14, 18, "pular", 0.3],
-						"saltar": [14, 18, "saltar", 0.3],
-						"morreu": [19, 27, 0.3],
-						"agachar": [10, 13, "agachado", 0.7],
+						"morreu": [19, 27, false, 1.5],
 						"atirar": {
 							frames: [1,0,3,2],
-							next: "parado",
+							next: "andar",
 							speed: 1.3
-						},
-						"subir": {
-							frames: [13,12,11,10],
-							next: "parado",
-							speed: 0.7
 						}
 					}
 				});
@@ -184,7 +174,6 @@
 						[187,183,71,81],
 					],
 					animations: {
-						"parado": [8, 10, "parado", 0.3],
 						"andar": {
 							frames: [10,13,12,11,14,10,15,16,17],
 							next: "andar",
@@ -235,12 +224,22 @@
 					}
 				});
 
+				spriteEspecial = new createjs.SpriteSheet({
+					framerate: 20,
+					images: [loader.getResult("especial")],
+					frames: {width: 70, height: 70},
+					animations: {
+						"efeito": [0, 5, "efeito", 0.5]
+					}
+				});
+
 				/* Background do menu */
 				bg.graphics.beginBitmapFill(bgImg, "repeat-x").drawRect(0, 0, cwidth, cheight);
 
 				/* Inicia o menu */
 				menu.iniciar();
 				creditos.iniciar();
+				gameOver.iniciar();
 
 			}
 
@@ -257,21 +256,22 @@
 				/* Matrix 2d */
 				matrix = new createjs.Matrix2D();
 
-				/* Cria um container para itens de coordenadas traduzidas */
+				/* Cria um container para itens de coordenadas traduzidas e outro para o score */
 				traduzidos = new createjs.Container();
+				ScoreContainer = new createjs.Container();
 
 				/* Inicia os objetos */
 				personagem.iniciar();
-				virus.iniciar(5);
+				virus.novo();
 				tiros.iniciar();
 				municao.iniciar();
+				score.iniciar();
 
 				/* Insere na canvas os itens de coordenadas traduzidas */
-				palco.addChild(cenario,traduzidos);
+				palco.addChild(cenario,traduzidos,ScoreContainer);
 
 				/* Registra os eventos do teclado e mouse */
 				document.addEventListener("keydown", keydown);
-				document.addEventListener("keyup", keyup);
 				palco.addEventListener("stagemousedown", tiros.novo);
 
 				/* Request Animation Frame: loop */
@@ -289,7 +289,9 @@
    				cenario.graphics.clear().beginBitmapFill(cenarioImg, "repeat-x", matrix).drawRect(0, 0, cenarioImg.width, cenarioImg.height);
 
    				/* Atualiza objetos */
+   				personagem.update();
    				tiros.update();
+   				especial.update();
    				virus.update();
    				fogo.update();
    				vida.update();
@@ -307,63 +309,26 @@
 
 				switch(event.keyCode){
 
-					case KEYS.LEFT:
-
-						if(KEYS.LEFT in KEYS._keys == false){
-
-							_personagem.gotoAndPlay("andar");
-							_personagem.on("animationend",function(){ delete KEYS._keys[KEYS.LEFT]; });
-
-						}
-
-						personagem.andar('left');
-						break;
-
-					case KEYS.RIGHT:
-
-						if(KEYS.RIGHT in KEYS._keys == false){
-
-							_personagem.gotoAndPlay("andar");
-							_personagem.on("animationend",function(){ delete KEYS._keys[KEYS.RIGHT]; });
-
-						}
-
-						personagem.andar('right');
-						break;
-
 					case KEYS.UP:
 
 						if(KEYS.UP in KEYS._keys == false){
 
 							_personagem.gotoAndPlay("pular");
-							_personagem.on("animationend",function(){ delete KEYS._keys[KEYS.UP]; });
+							_personagem.on("animationend", function(){ delete KEYS._keys[KEYS.UP]; });
 
 						}
 
 						personagem.pular();
 						break;
 
-					case KEYS.DOWN:
-
-						if(KEYS.DOWN in KEYS._keys == false){
-
-							_personagem.gotoAndPlay("agachar");
-							personagem.agachar();
-
-						}
-
-						break;
-
 					case KEYS.SPACE:
 
-						if(KEYS.SPACE in KEYS._keys == false){
+						if(personagem.especial == true){
 
-							_personagem.gotoAndPlay("saltar");
-							_personagem.on("animationend",function(){ delete KEYS._keys[KEYS.SPACE]; });
+							especial.novo();
 
 						}
 
-						personagem.saltar();
 						break;
 
 					default:
@@ -372,33 +337,6 @@
 				}
 
 				KEYS._keys[event.keyCode] = true;
-
-			}
-
-			function keyup(event){
-
-				switch(event.keyCode){
-
-					case KEYS.DOWN:
-
-						_personagem.gotoAndPlay("subir");
-						personagem.subir();
-						break;
-
-					case KEYS.UP:
-
-						break;
-
-					case KEYS.SPACE:
-
-						break;
-
-					default:
-						_personagem.gotoAndStop("parado");
-
-				}
-
-				delete KEYS._keys[event.keyCode];
 
 			}
 
@@ -512,89 +450,125 @@
 
 			},
 
-			/* Personagem */
-			personagem = {
+			gameOver = {
 
-				speed: 10,
-				life: 100,
-				saltoX: 350,
-				saltoY: 250,
-				puloY: 250,
-				saltoSpeed:250,
-				puloSpeed:350,
+				container: new createjs.Container(),
+				backButton: "jogar",
+				title: new createjs.Text("Game Over", "100px Comic Sans", "#fff"),
+				shadow: menu.shadow.clone(),
 
 				iniciar: function(){
 
-					_personagem = new createjs.Sprite(spritePersonagem, "parado");
-					_personagem.x = marginX;
-					_personagem.y = cheight - chao - personagem.height();
+					/* Sombra do texto */
+					this.title.shadow = this.shadow;
+
+					/* Definições do texto */
+					this.title.x = (cwidth - this.title.getBounds().width) / 2;
+					this.title.y = 100;
+
+					/* Imagens dos creditos */
+					this.backButton = new createjs.Bitmap(loader.getResult(this.backButton));
+
+					/* Definições do botão de voltar */
+					this.backButton.x = (cwidth - this.backButton.getBounds().width) / 2;
+					this.backButton.y = 400;
+
+				},
+
+				show: function(){
+
+					/* Registra a ação para jogar() */
+					this.backButton.addEventListener("click", startGame);
+
+					/* Adiciona as imagens no container creditos */
+					this.container.addChild(bg, this.backButton, this.title);
+
+					/* Remove tudo da canvas */
+					palco.removeAllEventListeners();
+					palco.removeAllChildren();
+
+					/* Insere o container menu na canvas */
+					palco.addChild(_personagem, this.container);
+
+					/* Atualizaa tela */
+					palco.update();
+
+				}
+
+			},
+
+			personagem = {
+
+				speed: 5,
+				life: 100,
+				puloY: 250,
+				puloSpeed:350,
+				especial: false,
+				dead: false,
+
+				iniciar: function(){
+
+					_personagem = new createjs.Sprite(spritePersonagem, "andar");
+					_personagem.x = marginX * 5;
+					_personagem.y = cheight - chao - personagem.bounds().height;
 
 					traduzidos.addChild(_personagem);
 
 				},
 
-				width: function(){
+				bounds: function(){
 
-					return spritePersonagem.getFrameBounds(_personagem.currentFrame).width;
-
-				},
-
-				height: function(){
-
-					return spritePersonagem.getFrameBounds(_personagem.currentFrame).height;
+					return spritePersonagem.getFrameBounds(_personagem.currentFrame);
 
 				},
 
-				andar: function(dir){
+				morreu: function(){
 
-					if(dir == 'left'){
+					if(this.dead == false){
 
-						_personagem.scaleX = -1;
+						this.life = 0;
+						this.dead = true;
 
-						if(_personagem.x - this.speed >= canvasInicio + marginX){
+						_personagem.gotoAndPlay("morreu");
 
-							_personagem.x -= this.speed;
+						_personagem.on("animationend", function(){
 
-						}
+							createjs.Tween.get(_personagem).wait(1000).to({
 
-					}else if(dir == 'right'){
+								alpha: 0
 
-						_personagem.scaleX = 1;
+							}, 700)
 
-						if(_personagem.x + personagem.width() > (cwidth/2) + pos && pos < (cenarioImg.width*2)){
+							.call(function(){
 
-							pos += this.speed;
+								gameOver.show();
 
-							canvasInicio = pos;
-							canvasFim = cwidth + pos;
+							});
 
-							matrix.translate(-this.speed,0);
-
-							_personagem.x += this.speed;
-
-						}else if(_personagem.x + personagem.width() + this.speed <= canvasFim - marginX){
-
-							_personagem.x += this.speed;
-
-						}
+						});
 
 					}
 
 				},
 
-				agachar: function(){
+				update: function(){
 
-					createjs.Tween.get(_personagem).to({y: 460}, 130);
+					if(this.dead == false){
 
-				},
+						pos += this.speed;
 
-				subir: function(){
+						canvasInicio = pos;
+						canvasFim = cwidth + pos;
 
-					createjs.Tween.get(_personagem).to({
+						matrix.translate(-this.speed,0);
 
-						y: cheight - chao - personagem.height()
+						_personagem.x += this.speed;
 
-					},130);
+					}else{
+
+						_personagem.y = cheight - chao - this.bounds().height;
+
+					}
 
 				},
 
@@ -610,13 +584,13 @@
 
 						createjs.Tween.get(_personagem).to({
 
-							y: cheight - chao - personagem.height()
+							y: cheight - chao - 83
 
 						}, personagem.puloSpeed)
 
 						.call(function(){
 
-							_personagem.gotoAndStop("parado");
+							_personagem.gotoAndPlay("andar");
 
 						});
 
@@ -624,67 +598,26 @@
 
 				},
 
-				saltar: function(){
-
-					if((_personagem.x + personagem.width() + personagem.saltoX <= canvasFim - marginX) && (_personagem.scaleX == 1) || (_personagem.x - personagem.saltoX >= canvasInicio + marginX) && (_personagem.scaleX == -1)){
-
-						var _x = _personagem.x - (personagem.saltoX / 2);
-
-						if(_personagem.scaleX == 1)
-							_x = _personagem.x + (personagem.saltoX / 2);
-
-						createjs.Tween.get(_personagem).to({
-
-							x: _x,
-							y: cheight - chao - personagem.saltoY
-
-						}, personagem.saltoSpeed)
-
-						.call(function(){
-
-							_x = _personagem.x - (personagem.saltoX / 2);
-
-							if(_personagem.scaleX == 1)
-								_x = _personagem.x + (personagem.saltoX / 2);
-
-							createjs.Tween.get(_personagem).to({
-
-								x: _x,
-								y: cheight - chao - personagem.height()
-
-							}, personagem.saltoSpeed)
-
-							.call(function(){
-
-								_personagem.gotoAndStop("parado");
-
-							});
-
-						});
-
-					}else{
-
-						_personagem.gotoAndStop("parado");
-
-					}
-
-				},
-
 				power: function(){
 
-					console.log("power");
+					this.especial = true;
+
+					setTimeout(function(){
+
+						personagem.especial = false;
+
+					}, 10 * 1000);
 
 				}
 
 			},
 
-			/* Tiros */
 			tiros = {
 
 				_tiros: [],
 				qtd: 40,
-				speed: 15,
-				damage: 1,
+				speed: 20,
+				damage: 3,
 				img: "tiro",
 
 				iniciar: function(){
@@ -698,12 +631,8 @@
 					if(tiros.qtd > 0){
 
 						var tiro = new createjs.Bitmap(tiros.img);
-						tiro.x = _personagem.x;
+						tiro.x = _personagem.x + personagem.bounds().width;
 						tiro.y = _personagem.y + 25;
-						tiro.scaleX = _personagem.scaleX;
-
-						if(tiro.scaleX == 1)
-							tiro.x = _personagem.x + personagem.width();
 
 						tiros._tiros.push(tiro);
 
@@ -723,9 +652,7 @@
 
 					for(var i = 0; i < virus._virus.length; i++){
 
-						var bounds = spriteVirus.getFrameBounds(virus._virus[i].currentFrame);
-
-						if(colidir(this._tiros[tiro], virus._virus[i], this.img, bounds)){
+						if(ndgmr.checkRectCollision(this._tiros[tiro], virus._virus[i])){
 
 							virus._virus[i].life -= this.damage;
 
@@ -754,14 +681,14 @@
 
 					for(var i = 0; i < this._tiros.length; i++){
 
-						if(this._tiros[i].x < canvasInicio || this._tiros[i].x > canvasFim || this.alvo(i)){
+						if(this._tiros[i].x > canvasFim || this.alvo(i)){
 
 							traduzidos.removeChild(this._tiros[i]);
 							this._tiros.splice(i,1);
 
 						}else{
 
-							this._tiros[i].x += this.speed * this._tiros[i].scaleX;
+							this._tiros[i].x += this.speed;
 
 						}
 
@@ -771,51 +698,124 @@
 
 			},
 
-			/* Vírus */
-			virus = {
+			especial = {
 
-				_virus: [],
-				speed: 0.5,
-				life: 10,
-				damage: 30,
+				_tiros: [],
+				qtd: 200,
+				speed: 30,
+				damage: 10,
 
-				iniciar: function(qtd){
+				novo: function(){
 
-					this.novo(qtd);
+					if(especial.qtd > 0){
 
-				},
+						var tiro = new createjs.Sprite(spriteEspecial, "efeito");
+						tiro.x = _personagem.x + personagem.bounds().width;
+						tiro.y = _personagem.y - 25;
+						tiro.scaleX = 3;
+						tiro.scaleY = 2;
 
-				novo: function(qtd){
+						tiro.bounds = function(){ return spriteEspecial.getFrameBounds(this.currentFrame); };
 
-					for(var i = 0; i < qtd; i++){
+						especial._tiros.push(tiro);
 
-						var vr = new createjs.Sprite(spriteVirus, "andar");
-						vr.x = canvasFim + (i * 200);
-						vr.y = cheight - chao - 76;
-						vr.scaleX = 1;
-						vr.life = this.life;
-						vr.coins = 100;
+						traduzidos.addChild(tiro);
 
-						vr.width = function(){ return spriteVirus.getFrameBounds(this.currentFrame).width; };
-						vr.height = function(){ return spriteVirus.getFrameBounds(this.currentFrame).height; };
-
-						this._virus.push(vr);
-
-						traduzidos.addChild(vr);
+						especial.qtd--;
 
 					}
 
 				},
 
+				alvo: function(tiro){
+
+					for(var i = 0; i < virus._virus.length; i++){
+
+						if(ndgmr.checkRectCollision(this._tiros[tiro], virus._virus[i])){
+
+							virus._virus[i].life -= this.damage;
+
+							if(virus._virus[i].life <= 0){
+
+								traduzidos.removeChild(virus._virus[i]);
+
+								moedas.novo(virus._virus[i].x, virus._virus[i].y, virus._virus[i].coins);
+
+								virus._virus.splice(i,1);
+
+							}
+
+						}
+
+					}
+
+					for(var i = 0; i < fogo._fogos.length; i++){
+
+						if(ndgmr.checkRectCollision(this._tiros[tiro], fogo._fogos[i])){
+
+							traduzidos.removeChild(fogo._fogos[i]);
+
+							fogo._fogos.splice(i,1);
+
+						}
+
+					}
+
+				},
+
+				update: function(){
+
+					for(var i = 0; i < this._tiros.length; i++){
+
+						if(this._tiros[i].x > canvasFim){
+
+							traduzidos.removeChild(this._tiros[i]);
+							this._tiros.splice(i,1);
+
+						}else{
+
+							this.alvo(i);
+							this._tiros[i].x += this.speed;
+
+						}
+
+					}
+
+				}
+
+			},
+
+			virus = {
+
+				_virus: [],
+				speed: 1,
+				life: 18,
+
+				novo: function(){
+
+					setInterval(function(){
+
+						var vr = new createjs.Sprite(spriteVirus, "andar");
+						vr.x = canvasFim;
+						vr.y = cheight - chao - 76;
+						vr.life = virus.life;
+						vr.coins = 100;
+
+						vr.bounds = function(){ return spriteVirus.getFrameBounds(this.currentFrame); };
+
+						virus._virus.push(vr);
+
+						traduzidos.addChild(vr);
+
+					}, 3000);
+
+				},
+
 				alvo: function(vr){
 
-					var bounds1 = spriteVirus.getFrameBounds(this._virus[vr].currentFrame);
-					var bounds2 = spritePersonagem.getFrameBounds(_personagem.currentFrame);
+					if(ndgmr.checkRectCollision(this._virus[vr], _personagem)){
 
-					if(colidir(this._virus[vr], _personagem, bounds1, bounds2)){
-
-						personagem.life -= this.damage;
-						_personagem.x -= 100;
+						personagem.morreu();
 
 						return true;
 
@@ -833,24 +833,20 @@
 
 					for(var i = 0; i < this._virus.length; i++){
 
-						if((this._virus[i].x <= canvasInicio + marginX && this._virus[i].scaleX == 1) || (this._virus[i].x >= canvasFim - marginX && this._virus[i].scaleX == -1)){
+						if(this._virus[i].x + this._virus[i].bounds().width < canvasInicio || this.alvo(i)){
 
-							this._virus[i].scaleX = this._virus[i].scaleX * -1;
+							traduzidos.removeChild(this._virus[i]);
 
-						}else if(this._virus[i].x >= canvasFim - marginX && this._virus[i].scaleX == -1){
-
-							this._virus[i].scaleX = this._virus[i].scaleX * -1;
+							this._virus.splice(i,1);
 
 						}else{
 
-							if(escolhido == i && fogo._fogos.length == 0 && ((this._virus[i].x > _personagem.x && this._virus[i].scaleX == 1) || (this._virus[i].x < _personagem.x && this._virus[i].scaleX == -1)))
+							if(escolhido == i && fogo._fogos.length < 2 && this._virus[i].x > _personagem.x)
 								fogo.novo(i);
 
-							this._virus[i].x += this.speed * (this._virus[i].scaleX * -1);
+							this._virus[i].x -= this.speed;
 
 						}
-
-						this.alvo(i);
 
 					}
 
@@ -861,7 +857,7 @@
 			fogo = {
 
 				_fogos: [],
-				damage: 1,
+				damage: 3,
 				speed: 8,
 
 				novo:function(vr){
@@ -869,13 +865,10 @@
 					var fogo = new createjs.Sprite(spriteFogo, "efeito");
 					fogo.x = virus._virus[vr].x;
 					fogo.y = virus._virus[vr].y + 15;
-					fogo.scaleX = virus._virus[vr].scaleX * -1;
+					fogo.scaleX = -1;
+					fogo.virus = vr;
 
-					fogo.width = function(){ return spriteFogo.getFrameBounds(this.currentFrame).width; };
-					fogo.height = function(){ return spriteFogo.getFrameBounds(this.currentFrame).height; };
-
-					if(fogo.scaleX == 1)
-						fogo.x = virus._virus[vr].x + virus._virus[vr].width();
+					fogo.bounds = function(){ return spriteFogo.getFrameBounds(this.currentFrame); };
 
 					this._fogos.push(fogo);
 
@@ -885,12 +878,15 @@
 
 				alvo: function(f){
 
-					var bounds1 = spriteFogo.getFrameBounds(this._fogos[f].currentFrame);
-					var bounds2 = spritePersonagem.getFrameBounds(_personagem.currentFrame);
-
-					if(colidir(this._fogos[f], _personagem, bounds1, bounds2)){
+					if(ndgmr.checkRectCollision(this._fogos[f], _personagem)){
 
 						personagem.life -= this.damage;
+
+						if(virus._virus[this._fogos[f].virus])
+							virus._virus[this._fogos[f].virus].coins -= this.damage;
+
+						if(personagem.life <= 0)
+							personagem.morreu();
 
 						return true;
 
@@ -906,14 +902,14 @@
 
 					for(var i = 0; i < this._fogos.length; i++){
 
-						if(this._fogos[i].x + this._fogos[i].width() < canvasInicio || this._fogos[i].x > canvasFim || this.alvo(i)){
+						if(this._fogos[i].x + this._fogos[i].bounds().width < canvasInicio || this.alvo(i)){
 
 							traduzidos.removeChild(this._fogos[i]);
 							this._fogos.splice(i,1);
 
 						}else{
 
-							this._fogos[i].x += this.speed * this._fogos[i].scaleX;
+							this._fogos[i].x -= this.speed;
 
 						}
 
@@ -935,8 +931,7 @@
 					c.x = getRandom((canvasInicio + marginX),(canvasFim - marginX - 40));
 					c.y = cheight - chao - 40;
 
-					c.width = function(){ return spriteCoracao.getFrameBounds(this.currentFrame).width; };
-					c.height = function(){ return spriteCoracao.getFrameBounds(this.currentFrame).height; };
+					c.bounds = function(){ return spriteCoracao.getFrameBounds(this.currentFrame); };
 
 					var i = this._vidas.push(c);
 
@@ -953,10 +948,7 @@
 
 				pegou: function(c){
 
-					var bounds1 = spriteCoracao.getFrameBounds(this._vidas[c].currentFrame);
-					var bounds2 = spritePersonagem.getFrameBounds(_personagem.currentFrame);
-
-					if(colidir(this._vidas[c], _personagem, bounds1, bounds2)){
+					if(ndgmr.checkRectCollision(this._vidas[c], _personagem)){
 
 						personagem.life += this.value;
 
@@ -980,7 +972,7 @@
 
 						for(var i = 0; i < this._vidas.length; i++){
 
-							if(this._vidas[i].x + this._vidas[i].width() < canvasInicio || this._vidas[i].x > canvasFim || this.pegou(i)){
+							if(this._vidas[i].x + this._vidas[i].bounds().width < canvasInicio || this.pegou(i)){
 
 								traduzidos.removeChild(this._vidas[i]);
 								this._vidas.splice(i,1);
@@ -1006,8 +998,7 @@
 					p.x = getRandom((canvasInicio + marginX),(canvasFim - marginX - 40));
 					p.y = cheight - chao - 40;
 
-					p.width = function(){ return spritePower.getFrameBounds(this.currentFrame).width; };
-					p.height = function(){ return spritePower.getFrameBounds(this.currentFrame).height; };
+					p.bounds = function(){ return spritePower.getFrameBounds(this.currentFrame); };
 
 					var i = this._px.push(p);
 
@@ -1024,13 +1015,10 @@
 
 				pegou: function(p){
 
-					var bounds1 = spritePower.getFrameBounds(this._px[p].currentFrame);
-					var bounds2 = spritePersonagem.getFrameBounds(_personagem.currentFrame);
-
-					if(colidir(this._px[p], _personagem, bounds1, bounds2)){
+					if(ndgmr.checkRectCollision(this._px[p], _personagem)){
 
 						personagem.power();
-						
+
 						return true;
 
 					}else{
@@ -1043,7 +1031,7 @@
 
 				update: function(){
 
-					if(personagem.life <= 30 && this._px.length == 0){
+					if(personagem.life <= 30 && this._px.length == 0 && personagem.especial === false){
 
 						this.novo();
 
@@ -1051,7 +1039,7 @@
 
 						for(var i = 0; i < this._px.length; i++){
 
-							if(this._px[i].x + this._px[i].width() < canvasInicio || this._px[i].x > canvasFim || this.pegou(i)){
+							if(this._px[i].x + this._px[i].bounds().width < canvasInicio || this.pegou(i)){
 
 								traduzidos.removeChild(this._px[i]);
 								this._px.splice(i,1);
@@ -1069,7 +1057,7 @@
 			municao = {
 
 				_cx: [],
-				value: 10,
+				value: 40,
 				time: 40,
 				img: "municao",
 
@@ -1100,9 +1088,7 @@
 
 				pegou: function(c){
 
-					var bounds = spritePersonagem.getFrameBounds(_personagem.currentFrame);
-
-					if(colidir(this._cx[c], _personagem, this.img, bounds)){
+					if(ndgmr.checkRectCollision(this._cx[c], _personagem)){
 
 						tiros.qtd += this.value;
 
@@ -1126,7 +1112,7 @@
 
 						for(var i = 0; i < this._cx.length; i++){
 
-							if(this._cx[i].x + this.img.width < canvasInicio || this._cx[i].x > canvasFim || this.pegou(i)){
+							if(this._cx[i].x + this.img.width < canvasInicio || this.pegou(i)){
 
 								traduzidos.removeChild(this._cx[i]);
 								this._cx.splice(i,1);
@@ -1153,8 +1139,7 @@
 					m.y = y;
 					m.value = coins;
 
-					m.width = function(){ return spriteMoeda.getFrameBounds(this.currentFrame).width; };
-					m.height = function(){ return spriteMoeda.getFrameBounds(this.currentFrame).height; };
+					m.bounds = function(){ return spriteMoeda.getFrameBounds(this.currentFrame); };
 
 					var i = this._moedas.push(m);
 
@@ -1171,10 +1156,7 @@
 
 				pegou: function(m){
 
-					var bounds = spriteMoeda.getFrameBounds(this._moedas[m].currentFrame);
-					var bounds2 = spritePersonagem.getFrameBounds(_personagem.currentFrame);
-
-					if(colidir(this._moedas[m], _personagem, bounds, bounds2)){
+					if(ndgmr.checkRectCollision(this._moedas[m], _personagem)){
 
 						score.value += this._moedas[m].value;
 
@@ -1192,7 +1174,7 @@
 
 					for(var i = 0; i < this._moedas.length; i++){
 
-						if(this._moedas[i].x + this._moedas[i].width() < canvasInicio || this._moedas[i].x > canvasFim || this.pegou(i)){
+						if(this._moedas[i].x + this._moedas[i].bounds().width < canvasInicio || this.pegou(i)){
 
 							traduzidos.removeChild(this._moedas[i]);
 							this._moedas.splice(i,1);
@@ -1208,8 +1190,54 @@
 			score = {
 
 				value: 0,
+				balas: new createjs.Text("Balas: ", "20px Arial", "#fff"),
+				vida: new createjs.Shape(),
+				score: new createjs.Text("Pontos: ", "20px Arial", "#fff"),
+				barWidth: 200,
+				barHeight: 25,
 
-				update: function(){}
+				iniciar: function(){
+
+					this.vida.graphics.beginFill("#66FF33");
+					this.vida.graphics.beginStroke("#000");
+					this.vida.graphics.setStrokeStyle(2);
+
+					this.score.x = marginX;
+					this.score.y = marginX * 3;
+
+					this.balas.x = marginX;
+					this.balas.y = marginX * 5;
+
+					ScoreContainer.addChild(this.balas, this.vida, this.score);
+
+				},
+
+				update: function(){
+
+					this.balas.text = "Balas: " + tiros.qtd;
+
+					this.score.text = "Pontos: " + this.value;
+
+					var a = (personagem.life * 100 ) / 100;
+
+					var b = (a * this.barWidth ) / 100;
+
+					var color = '#66FF33';
+
+					if(a < 30)
+						color = 'red';
+					else if(a < 50)
+						color = 'orange';
+					else if(a < 65)
+						color = '#FFCC33';
+					else if(a < 80)
+						color = '#CCFF33';
+
+					this.vida.graphics.beginFill(color).drawRect(marginX, marginX, this.barWidth, this.barHeight);
+
+					this.vida.cache(marginX, marginX, b, this.barHeight);
+
+				}
 
 			};
 
