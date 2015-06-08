@@ -67,7 +67,9 @@
 				/* Manifest: Imagens e sons a serem carregados */
 				manifest = [
 					{src: "cenario.png", id: "cenario"},
+					{src: "plataforma.png", id: "plataforma"},
 					{src: "virus.gif", id: "virus"},
+					{src: "dragao.png", id: "dragao"},
 					{src: "personagem.png", id: "personagem"},
 					{src: "bala.png", id: "tiro"},
 					{src: "coin.png", id: "moeda"},
@@ -97,7 +99,7 @@
 
 				/* Animações do personagem */
 				spritePersonagem = new createjs.SpriteSheet({
-					framerate: 15,
+					framerate: 20,
 					images: [loader.getResult("personagem")],
 					frames: [
 						[3,0,76,83],
@@ -187,7 +189,15 @@
 					}
 				});
 
-				/* Animações das moedas */
+				spriteDragao = new createjs.SpriteSheet({
+					framerate: 20,
+					images: [loader.getResult("dragao")],
+					frames: {width: 178, height: 190},
+					animations: {
+						"voando": [0, 7, "voando", 0.8],
+					}
+				});
+
 				spriteMoeda = new createjs.SpriteSheet({
 					framerate: 20,
 					images: [loader.getResult("moeda")],
@@ -262,7 +272,9 @@
 
 				/* Inicia os objetos */
 				personagem.iniciar();
+				plataformas.iniciar();
 				virus.novo();
+				dragao.novo();
 				tiros.iniciar();
 				municao.iniciar();
 				score.iniciar();
@@ -290,9 +302,11 @@
 
    				/* Atualiza objetos */
    				personagem.update();
+   				plataformas.update();
    				tiros.update();
    				especial.update();
    				virus.update();
+   				dragao.update();
    				fogo.update();
    				vida.update();
    				power.update();
@@ -499,17 +513,19 @@
 
 			personagem = {
 
+				x: 100,
 				speed: 5,
 				life: 100,
-				puloY: 250,
-				puloSpeed:350,
+				puloY: 350,
+				puloSpeed:450,
 				especial: false,
 				dead: false,
+				plataforma: false,
 
 				iniciar: function(){
 
 					_personagem = new createjs.Sprite(spritePersonagem, "andar");
-					_personagem.x = marginX * 5;
+					_personagem.x = this.x;
 					_personagem.y = cheight - chao - personagem.bounds().height;
 
 					traduzidos.addChild(_personagem);
@@ -612,6 +628,92 @@
 
 			},
 
+			plataformas = {
+
+				_plt: [],
+				img: "plataforma",
+
+				iniciar: function(){
+
+					this.img = loader.getResult(this.img);
+					this.novo();
+
+				},
+
+				novo: function(){
+
+					setInterval(function(){
+
+						var plt = new createjs.Bitmap(plataformas.img);
+						plt.x = canvasFim;
+						plt.y = getRandom((cheight - chao - (personagem.puloY - personagem.bounds().height)),(cheight - chao - 150));
+
+						plataformas._plt.push(plt);
+
+						traduzidos.addChild(plt);
+
+					}, 3000);
+
+				},
+
+				encima: function(p){
+
+					if(_personagem.x + 30 >= this._plt[p].x && _personagem.y + personagem.bounds().height >= this._plt[p].y && _personagem.y + personagem.bounds().height <= this._plt[p].y + this.img.height && _personagem.x + personagem.bounds().width - 30 <= this._plt[p].x + this.img.width){
+
+						if(personagem.plataforma === false){
+
+							_personagem.y = this._plt[p].y - personagem.bounds().height;
+							createjs.Tween.removeTweens(_personagem);
+							_personagem.gotoAndPlay("andar");
+							personagem.plataforma = p;
+
+						}
+
+						return true;
+
+					}else{ return false; }
+
+				},
+
+				update: function(){
+
+					for(var i = 0; i < this._plt.length; i++){
+
+						if(this._plt[i].x + this.img.width < canvasInicio){
+
+							traduzidos.removeChild(this._plt[i]);
+							this._plt.splice(i,1);
+
+						}else{
+
+							if(personagem.plataforma !== false){
+
+								if(this.encima(personagem.plataforma) == false){
+
+									createjs.Tween.get(_personagem).to({
+
+										y: cheight - chao - 83
+
+									}, personagem.puloSpeed);
+
+									personagem.plataforma = false;
+
+								}
+
+							}else{
+
+								this.encima(i);
+
+							}
+
+						}
+
+					}
+
+				}
+
+			},
+
 			tiros = {
 
 				_tiros: [],
@@ -703,7 +805,7 @@
 				_tiros: [],
 				qtd: 200,
 				speed: 30,
-				damage: 10,
+				damage: 30,
 
 				novo: function(){
 
@@ -790,16 +892,17 @@
 				_virus: [],
 				speed: 1,
 				life: 18,
+				coins: 100,
 
 				novo: function(){
 
-					setInterval(function(){
+					/*setInterval(function(){
 
 						var vr = new createjs.Sprite(spriteVirus, "andar");
 						vr.x = canvasFim;
 						vr.y = cheight - chao - 76;
 						vr.life = virus.life;
-						vr.coins = 100;
+						vr.coins = virus.coins;
 
 						vr.bounds = function(){ return spriteVirus.getFrameBounds(this.currentFrame); };
 
@@ -807,7 +910,7 @@
 
 						traduzidos.addChild(vr);
 
-					}, 3000);
+					}, 3000);*/
 
 				},
 
@@ -829,7 +932,7 @@
 
 				update: function(){
 
-					var escolhido = getRandom(0, this._virus.length);
+					//var escolhido = getRandom(0, this._virus.length);
 
 					for(var i = 0; i < this._virus.length; i++){
 
@@ -841,10 +944,72 @@
 
 						}else{
 
-							if(escolhido == i && fogo._fogos.length < 2 && this._virus[i].x > _personagem.x)
-								fogo.novo(i);
+							/*if(escolhido == i && fogo._fogos.length < 2 && this._virus[i].x > _personagem.x)
+								fogo.novo(i);*/
 
 							this._virus[i].x -= this.speed;
+
+						}
+
+					}
+
+				}
+
+			},
+
+			dragao = {
+
+				_dgs: [],
+				speed: 3,
+				life: 30,
+				coins:200,
+
+				novo: function(){
+
+					setInterval(function(){
+
+						var dg = new createjs.Sprite(spriteDragao, "voando");
+						dg.x = canvasFim;
+						dg.y = getRandom(50, _personagem.y - 300);
+						dg.life = dragao.life;
+						dg.coins = dragao.coins;
+
+						dg.bounds = function(){ return spriteDragao.getFrameBounds(this.currentFrame); };
+
+						dragao._dgs.push(dg);
+
+						traduzidos.addChild(dg);
+
+					}, 3000);
+
+				},
+
+				alvo: function(dg){
+
+					return false;
+
+				},
+
+				update: function(){
+
+					var escolhido = getRandom(0, this._dgs.length);
+
+					console.log(this._dgs.length);
+
+					for(var i = 0; i < this._dgs.length; i++){
+
+						if(this._dgs[i].x + this._dgs[i].bounds().width < canvasInicio || this.alvo(i)){
+
+							traduzidos.removeChild(this._dgs[i]);
+
+							this._dgs.splice(i,1);
+
+						}else{
+
+							if(escolhido == i && fogo._fogos.length == 0 && this._dgs[i].x > _personagem.x)
+								fogo.novo(i);
+
+							this._dgs[i].x -= this.speed;
 
 						}
 
@@ -858,21 +1023,29 @@
 
 				_fogos: [],
 				damage: 3,
-				speed: 8,
+				speed: 2500,
 
 				novo:function(vr){
 
 					var fogo = new createjs.Sprite(spriteFogo, "efeito");
-					fogo.x = virus._virus[vr].x;
-					fogo.y = virus._virus[vr].y + 15;
+					fogo.x = dragao._dgs[vr].x + 30;
+					fogo.y = dragao._dgs[vr].y + 125;
 					fogo.scaleX = -1;
-					fogo.virus = vr;
+					fogo.rotation = -60;
+					fogo.dragao = vr;
 
 					fogo.bounds = function(){ return spriteFogo.getFrameBounds(this.currentFrame); };
 
 					this._fogos.push(fogo);
 
 					traduzidos.addChild(fogo);
+
+					createjs.Tween.get(fogo).to({
+
+						x: _personagem.x + personagem.bounds().width + 50,
+						y: _personagem.y
+
+					}, this.speed);
 
 				},
 
@@ -882,8 +1055,8 @@
 
 						personagem.life -= this.damage;
 
-						if(virus._virus[this._fogos[f].virus])
-							virus._virus[this._fogos[f].virus].coins -= this.damage;
+						if(dragao._dgs[this._fogos[f].dragao])
+							dragao._dgs[this._fogos[f].dragao].coins -= this.damage;
 
 						if(personagem.life <= 0)
 							personagem.morreu();
@@ -902,14 +1075,10 @@
 
 					for(var i = 0; i < this._fogos.length; i++){
 
-						if(this._fogos[i].x + this._fogos[i].bounds().width < canvasInicio || this.alvo(i)){
+						if(this._fogos[i].x + this._fogos[i].bounds().width < canvasInicio || this._fogos[i].y > cheight || this.alvo(i)){
 
 							traduzidos.removeChild(this._fogos[i]);
 							this._fogos.splice(i,1);
-
-						}else{
-
-							this._fogos[i].x -= this.speed;
 
 						}
 
@@ -927,11 +1096,12 @@
 
 				novo: function(){
 
-					var c = new createjs.Sprite(spriteCoracao, "efeito");
-					c.x = getRandom((canvasInicio + marginX),(canvasFim - marginX - 40));
-					c.y = cheight - chao - 40;
+					var plt = getRandom(0, plataformas._plt.length);
 
+					var c = new createjs.Sprite(spriteCoracao, "efeito");
 					c.bounds = function(){ return spriteCoracao.getFrameBounds(this.currentFrame); };
+					c.x = plataformas._plt[plt].x + ((plataformas.img.width / 2) - (c.bounds().width / 2));
+					c.y = plataformas._plt[plt].y - c.bounds().height;
 
 					var i = this._vidas.push(c);
 
@@ -994,11 +1164,12 @@
 
 				novo: function(){
 
-					var p = new createjs.Sprite(spritePower, "efeito");
-					p.x = getRandom((canvasInicio + marginX),(canvasFim - marginX - 40));
-					p.y = cheight - chao - 40;
+					var plt = getRandom(0, plataformas._plt.length);
 
+					var p = new createjs.Sprite(spritePower, "efeito");
 					p.bounds = function(){ return spritePower.getFrameBounds(this.currentFrame); };
+					p.x = plataformas._plt[plt].x + ((plataformas.img.width / 2) - (p.bounds().width / 2));
+					p.y = plataformas._plt[plt].y - p.bounds().height;
 
 					var i = this._px.push(p);
 
@@ -1069,9 +1240,11 @@
 
 				novo: function(){
 
+					var plt = getRandom(0, plataformas._plt.length);
+
 					var m = new createjs.Bitmap(municao.img);
-					m.x = getRandom((canvasInicio + marginX),(canvasFim - marginX - this.img.width));
-					m.y = cheight - chao - this.img.height;
+					m.x = plataformas._plt[plt].x + ((plataformas.img.width / 2) - (this.img.width / 2));
+					m.y = plataformas._plt[plt].y - this.img.height;
 
 					var i = this._cx.push(m);
 
