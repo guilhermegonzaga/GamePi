@@ -68,7 +68,7 @@
 				manifest = [
 					{src: "cenario.png", id: "cenario"},
 					{src: "plataforma.png", id: "plataforma"},
-					{src: "virus.gif", id: "virus"},
+					{src: "virus.png", id: "virus"},
 					{src: "dragao.png", id: "dragao"},
 					{src: "personagem.png", id: "personagem"},
 					{src: "bala.png", id: "tiro"},
@@ -153,46 +153,33 @@
 					framerate: 20,
 					images: [loader.getResult("virus")],
 					frames: [
-						[10,5,77,76],
-						[89,5,77,76],
-						[171,5,77,76],
-						[225,5,77,76],
-						[337,5,77,76],
-						[420,5,77,76],
-						[501,5,77,76],
-						[583,5,77,76],
-
-						[14,97,77,76],
-						[98,97,77,76],
-						[182,97,77,76],
-
-						[278,92,92,81],
-						[375,91,78,82],
-						[461,90,70,83],
-						[536,98,97,75],
-
-						[4,181,81,83],
-						[95,182,76,82],
-						[187,183,71,81],
+						[0,0,89,107],
+						[89,0,74,107],
+						[163,0,52,107],
+						[215,0,63,107],
+						[0,107,67,107],
+						[67,107,55,107],
+						[122,107,69,107],
+						[191,107,70,107]
 					],
 					animations: {
-						"andar": {
-							frames: [10,13,12,11,14,10,15,16,17],
-							next: "andar",
-							speed: 0.3
-						},
-						"atirar": {
-							frames: [7,6,5,4,2,1,0],
-							next: "andar",
-							speed: 0.3
-						}
+						"andar": [0, 7, "andar", 0.4]
 					}
 				});
 
 				spriteDragao = new createjs.SpriteSheet({
 					framerate: 20,
 					images: [loader.getResult("dragao")],
-					frames: {width: 178, height: 190},
+					frames: [
+						[0,0,164,190],
+						[164,0,158,190],
+						[322,0,145,190],
+						[467,0,128,190],
+						[595,0,160,190],
+						[755,0,162,190],
+						[917,0,146,190],
+						[1063,0,154,190]
+					],
 					animations: {
 						"voando": [0, 7, "voando", 0.8],
 					}
@@ -422,6 +409,7 @@
 				container: new createjs.Container(),
 				backButton: "back",
 				title: new createjs.Text("Créditos", "100px Comic Sans", "#fff"),
+				infos: new createjs.Text("Guilherme de Oliveira Gonzaga\nAlexandre Silvério Maximiliano\nHenrique Moreira", "35px Comic Sans", "#fff"),
 				shadow: menu.shadow.clone(),
 
 				iniciar: function(){
@@ -433,12 +421,17 @@
 					this.title.x = (cwidth - this.title.getBounds().width) / 2;
 					this.title.y = 100;
 
+					/* Definições do texto */
+					this.infos.x = cwidth / 2;
+					this.infos.y = 280;
+					this.infos.textAlign = 'center';
+
 					/* Imagens dos creditos */
 					this.backButton = new createjs.Bitmap(loader.getResult(this.backButton));
 
 					/* Definições do botão de voltar */
 					this.backButton.x = (cwidth - this.backButton.getBounds().width) / 2;
-					this.backButton.y = 400;
+					this.backButton.y = 450;
 
 				},
 
@@ -448,7 +441,7 @@
 					this.backButton.addEventListener("click", function(){ menu.show(); });
 
 					/* Adiciona as imagens no container creditos */
-					this.container.addChild(bg, this.backButton, this.title);
+					this.container.addChild(bg, this.backButton, this.title, this.infos);
 
 					/* Remove tudo da canvas */
 					palco.removeAllEventListeners();
@@ -467,8 +460,10 @@
 			gameOver = {
 
 				container: new createjs.Container(),
-				backButton: "jogar",
+				restartButton: "jogar",
 				title: new createjs.Text("Game Over", "100px Comic Sans", "#fff"),
+				score: new createjs.Text("Pontos: ", "35px Comic Sans", "#fff"),
+				record: new createjs.Text("Seu record é: ", "35px Comic Sans", "#fff"),
 				shadow: menu.shadow.clone(),
 
 				iniciar: function(){
@@ -480,22 +475,45 @@
 					this.title.x = (cwidth - this.title.getBounds().width) / 2;
 					this.title.y = 100;
 
+					/* Pontos */
+					this.score.x = (cwidth - this.score.getBounds().width) / 2;
+					this.score.y = 280;
+
+					/* Record */
+					this.record.x = (cwidth - this.record.getBounds().width) / 2;
+					this.record.y = 320;
+
 					/* Imagens dos creditos */
-					this.backButton = new createjs.Bitmap(loader.getResult(this.backButton));
+					this.restartButton = new createjs.Bitmap(loader.getResult(this.restartButton));
 
 					/* Definições do botão de voltar */
-					this.backButton.x = (cwidth - this.backButton.getBounds().width) / 2;
-					this.backButton.y = 400;
+					this.restartButton.x = (cwidth - this.restartButton.getBounds().width) / 2;
+					this.restartButton.y = 400;
 
 				},
 
 				show: function(){
 
-					/* Registra a ação para jogar() */
-					this.backButton.addEventListener("click", startGame);
+					if(!localStorage.getItem('record'))
+						localStorage.setItem('record', 0);
+
+					/* Pontos e Record */
+					this.score.text = this.score.text + score.value;
+					this.record.text = this.record.text + localStorage.getItem('record');
+
+					/* Novo record */
+					if(score.value > localStorage.getItem('record')){
+
+						localStorage.setItem('record', score.value);
+						this.record.text = "Novo record: " + score.value;
+
+					}
+
+					/* Registra a ação para reload() */
+					this.restartButton.addEventListener("click", function(){ window.location.reload(); });
 
 					/* Adiciona as imagens no container creditos */
-					this.container.addChild(bg, this.backButton, this.title);
+					this.container.addChild(bg, this.restartButton, this.title, this.score, this.record);
 
 					/* Remove tudo da canvas */
 					palco.removeAllEventListeners();
@@ -516,8 +534,8 @@
 				x: 100,
 				speed: 5,
 				life: 100,
-				puloY: 350,
-				puloSpeed:450,
+				puloY: 480,
+				puloSpeed: 430,
 				especial: false,
 				dead: false,
 				plataforma: false,
@@ -544,6 +562,10 @@
 
 						this.life = 0;
 						this.dead = true;
+
+						createjs.Tween.removeTweens(_personagem);
+
+						palco.removeAllEventListeners();
 
 						_personagem.gotoAndPlay("morreu");
 
@@ -652,7 +674,7 @@
 
 						traduzidos.addChild(plt);
 
-					}, 3000);
+					}, 2500);
 
 				},
 
@@ -717,8 +739,8 @@
 			tiros = {
 
 				_tiros: [],
-				qtd: 40,
-				speed: 20,
+				qtd: 50,
+				speed: 18,
 				damage: 3,
 				img: "tiro",
 
@@ -750,8 +772,6 @@
 
 				alvo: function(tiro){
 
-					var ret = false;
-
 					for(var i = 0; i < virus._virus.length; i++){
 
 						if(ndgmr.checkRectCollision(this._tiros[tiro], virus._virus[i])){
@@ -768,14 +788,37 @@
 
 							}
 
-							ret = true;
+							return true;
 							break;
 
 						}
 
 					}
 
-					return ret;
+					for(var i = 0; i < dragao._dgs.length; i++){
+
+						if(ndgmr.checkRectCollision(this._tiros[tiro], dragao._dgs[i])){
+
+							dragao._dgs[i].life -= this.damage;
+
+							if(dragao._dgs[i].life <= 0){
+
+								traduzidos.removeChild(dragao._dgs[i]);
+
+								moedas.novo(dragao._dgs[i].x, dragao._dgs[i].y, dragao._dgs[i].coins);
+
+								dragao._dgs.splice(i,1);
+
+							}
+
+							return true;
+							break;
+
+						}
+
+					}
+
+					return false;
 
 				},
 
@@ -803,29 +846,24 @@
 			especial = {
 
 				_tiros: [],
-				qtd: 200,
 				speed: 30,
 				damage: 30,
 
 				novo: function(){
 
-					if(especial.qtd > 0){
+					var tiro = new createjs.Sprite(spriteEspecial, "efeito");
+					tiro.x = _personagem.x + personagem.bounds().width;
+					tiro.y = _personagem.y - 25;
+					tiro.scaleX = 3;
+					tiro.scaleY = 2;
 
-						var tiro = new createjs.Sprite(spriteEspecial, "efeito");
-						tiro.x = _personagem.x + personagem.bounds().width;
-						tiro.y = _personagem.y - 25;
-						tiro.scaleX = 3;
-						tiro.scaleY = 2;
+					tiro.bounds = function(){ return spriteEspecial.getFrameBounds(this.currentFrame); };
 
-						tiro.bounds = function(){ return spriteEspecial.getFrameBounds(this.currentFrame); };
+					especial._tiros.push(tiro);
 
-						especial._tiros.push(tiro);
+					traduzidos.addChild(tiro);
 
-						traduzidos.addChild(tiro);
-
-						especial.qtd--;
-
-					}
+					especial.qtd--;
 
 				},
 
@@ -844,6 +882,26 @@
 								moedas.novo(virus._virus[i].x, virus._virus[i].y, virus._virus[i].coins);
 
 								virus._virus.splice(i,1);
+
+							}
+
+						}
+
+					}
+
+					for(var i = 0; i < dragao._dgs.length; i++){
+
+						if(ndgmr.checkRectCollision(this._tiros[tiro], dragao._dgs[i])){
+
+							dragao._dgs[i].life -= this.damage;
+
+							if(dragao._dgs[i].life <= 0){
+
+								traduzidos.removeChild(dragao._dgs[i]);
+
+								moedas.novo(dragao._dgs[i].x, dragao._dgs[i].y, dragao._dgs[i].coins);
+
+								dragao._dgs.splice(i,1);
 
 							}
 
@@ -890,17 +948,18 @@
 			virus = {
 
 				_virus: [],
-				speed: 1,
+				speed: 0.8,
 				life: 18,
-				coins: 100,
+				damage: 35,
+				coins: 75,
 
 				novo: function(){
 
-					/*setInterval(function(){
+					setInterval(function(){
 
 						var vr = new createjs.Sprite(spriteVirus, "andar");
 						vr.x = canvasFim;
-						vr.y = cheight - chao - 76;
+						vr.y = cheight - chao - 107;
 						vr.life = virus.life;
 						vr.coins = virus.coins;
 
@@ -910,7 +969,7 @@
 
 						traduzidos.addChild(vr);
 
-					}, 3000);*/
+					}, 5000);
 
 				},
 
@@ -918,7 +977,23 @@
 
 					if(ndgmr.checkRectCollision(this._virus[vr], _personagem)){
 
-						personagem.morreu();
+						personagem.life -= this.damage;
+
+						if(personagem.life <= 0){
+
+							personagem.morreu();
+
+						}else{
+
+							createjs.Tween.get(_personagem)
+							.to({ alpha: 0 }, 200)
+							.to({ alpha: 1 }, 200)
+							.to({ alpha: 0 }, 200)
+							.to({ alpha: 1 }, 200)
+							.to({ alpha: 0 }, 200)
+							.to({ alpha: 1 }, 200);
+
+						}
 
 						return true;
 
@@ -932,8 +1007,6 @@
 
 				update: function(){
 
-					//var escolhido = getRandom(0, this._virus.length);
-
 					for(var i = 0; i < this._virus.length; i++){
 
 						if(this._virus[i].x + this._virus[i].bounds().width < canvasInicio || this.alvo(i)){
@@ -943,9 +1016,6 @@
 							this._virus.splice(i,1);
 
 						}else{
-
-							/*if(escolhido == i && fogo._fogos.length < 2 && this._virus[i].x > _personagem.x)
-								fogo.novo(i);*/
 
 							this._virus[i].x -= this.speed;
 
@@ -960,9 +1030,10 @@
 			dragao = {
 
 				_dgs: [],
-				speed: 3,
+				speed: 1.6,
 				life: 30,
-				coins:200,
+				damage: 60,
+				coins: 300,
 
 				novo: function(){
 
@@ -970,7 +1041,7 @@
 
 						var dg = new createjs.Sprite(spriteDragao, "voando");
 						dg.x = canvasFim;
-						dg.y = getRandom(50, _personagem.y - 300);
+						dg.y = getRandom(80, (cheight / 2) - 190);
 						dg.life = dragao.life;
 						dg.coins = dragao.coins;
 
@@ -986,15 +1057,39 @@
 
 				alvo: function(dg){
 
-					return false;
+					if(ndgmr.checkRectCollision(this._dgs[dg], _personagem)){
+
+						personagem.life -= this.damage;
+
+						if(personagem.life <= 0){
+
+							personagem.morreu();
+
+						}else{
+
+							createjs.Tween.get(_personagem)
+							.to({ alpha: 0 }, 200)
+							.to({ alpha: 1 }, 200)
+							.to({ alpha: 0 }, 200)
+							.to({ alpha: 1 }, 200)
+							.to({ alpha: 0 }, 200)
+							.to({ alpha: 1 }, 200);
+
+						}
+
+						return true;
+
+					}else{
+
+						return false;
+
+					}
 
 				},
 
 				update: function(){
 
 					var escolhido = getRandom(0, this._dgs.length);
-
-					console.log(this._dgs.length);
 
 					for(var i = 0; i < this._dgs.length; i++){
 
@@ -1023,7 +1118,7 @@
 
 				_fogos: [],
 				damage: 3,
-				speed: 2500,
+				speed: 3000,
 
 				novo:function(vr){
 
@@ -1091,8 +1186,7 @@
 			vida = {
 
 				_vidas: [],
-				value: 1,
-				time: 40,
+				value: 5,
 
 				novo: function(){
 
@@ -1103,14 +1197,7 @@
 					c.x = plataformas._plt[plt].x + ((plataformas.img.width / 2) - (c.bounds().width / 2));
 					c.y = plataformas._plt[plt].y - c.bounds().height;
 
-					var i = this._vidas.push(c);
-
-					setTimeout(function(){
-
-						traduzidos.removeChild(c);
-						vida._vidas.splice(i - 1, 1);
-
-					 }, this.time * 1000);
+					this._vidas.push(c);
 
 					traduzidos.addChild(c);
 
@@ -1134,7 +1221,7 @@
 
 				update: function(){
 
-					if(personagem.life <= 30 && this._vidas.length == 0){
+					if(personagem.life <= 45 && this._vidas.length == 0){
 
 						this.novo();
 
@@ -1160,7 +1247,6 @@
 			power = {
 
 				_px: [],
-				time: 40,
 
 				novo: function(){
 
@@ -1171,14 +1257,7 @@
 					p.x = plataformas._plt[plt].x + ((plataformas.img.width / 2) - (p.bounds().width / 2));
 					p.y = plataformas._plt[plt].y - p.bounds().height;
 
-					var i = this._px.push(p);
-
-					setTimeout(function(){
-
-						traduzidos.removeChild(p);
-						power._px.splice(i - 1, 1);
-
-					 }, this.time * 1000);
+					this._px.push(p);
 
 					traduzidos.addChild(p);
 
@@ -1202,7 +1281,7 @@
 
 				update: function(){
 
-					if(personagem.life <= 30 && this._px.length == 0 && personagem.especial === false){
+					if(personagem.life <= 40 && this._px.length == 0 && personagem.especial === false){
 
 						this.novo();
 
@@ -1228,8 +1307,7 @@
 			municao = {
 
 				_cx: [],
-				value: 40,
-				time: 40,
+				value: 50,
 				img: "municao",
 
 				iniciar: function(){
@@ -1246,14 +1324,7 @@
 					m.x = plataformas._plt[plt].x + ((plataformas.img.width / 2) - (this.img.width / 2));
 					m.y = plataformas._plt[plt].y - this.img.height;
 
-					var i = this._cx.push(m);
-
-					setTimeout(function(){
-
-						traduzidos.removeChild(m);
-						municao._cx.splice(i - 1, 1);
-
-					 }, this.time * 1000);
+					this._cx.push(m);
 
 					traduzidos.addChild(m);
 
@@ -1277,7 +1348,7 @@
 
 				update: function(){
 
-					if(this._cx.length == 0 && tiros.qtd == 0){
+					if(this._cx.length == 0 && tiros.qtd <= 8){
 
 						this.novo();
 
@@ -1303,7 +1374,6 @@
 			moedas = {
 
 				_moedas: [],
-				time: 40,
 
 				novo: function(x, y, coins){
 
@@ -1314,14 +1384,7 @@
 
 					m.bounds = function(){ return spriteMoeda.getFrameBounds(this.currentFrame); };
 
-					var i = this._moedas.push(m);
-
-					setTimeout(function(){
-
-						traduzidos.removeChild(m);
-						moedas._moedas.splice(i - 1, 1);
-
-					 }, this.time * 1000);
+					this._moedas.push(m);
 
 					traduzidos.addChild(m);
 
@@ -1363,9 +1426,9 @@
 			score = {
 
 				value: 0,
-				balas: new createjs.Text("Balas: ", "20px Arial", "#fff"),
+				balas: new createjs.Text('', "20px Arial", "#fff"),
 				vida: new createjs.Shape(),
-				score: new createjs.Text("Pontos: ", "20px Arial", "#fff"),
+				score: new createjs.Text('', "20px Arial", "#fff"),
 				barWidth: 200,
 				barHeight: 25,
 
@@ -1387,9 +1450,9 @@
 
 				update: function(){
 
-					this.balas.text = "Balas: " + tiros.qtd;
+					this.balas.text = 'Balas: ' + tiros.qtd;
 
-					this.score.text = "Pontos: " + this.value;
+					this.score.text = 'Pontos: ' + this.value;
 
 					var a = (personagem.life * 100 ) / 100;
 
