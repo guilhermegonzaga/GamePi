@@ -4,7 +4,7 @@
 <p><b>Status:</b> Em desenvolvimento</p>
 
 # Projeto
-<p>Jogo desenvolvido em HTML 5 e Javascript para apresentação na faculdade.</p>
+<p>Jogo desenvolvido com a biblioteca <a href="https://github.com/CreateJS">CreateJS</a> para apresentação na faculdade.</p>
 
 # Faculdade
 <p><b>Nome:</b> Unipam ( Centro Universitário de Patos de Minas)</p>
@@ -13,4 +13,4 @@
 #Alunos
 <p>Guilherme de Oliveira Gonzaga</p>
 <p>Alexandre Silvério Maximiliano</p>
-<p>Henrique</p>
+<p>Henrique Moreira</p>
