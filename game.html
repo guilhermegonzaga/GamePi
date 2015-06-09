@@ -27,7 +27,7 @@
 			nome = "Hacker vs. Vírus",
 			cheight = 580,
 			marginX = 20,
-			chao = 55,
+			chao = 59,
 			pos = 0,
 			canvasInicio = 0,
 			canvasFim = 0,
@@ -67,6 +67,7 @@
 				/* Manifest: Imagens e sons a serem carregados */
 				manifest = [
 					{src: "cenario.png", id: "cenario"},
+					{src: "agua.png", id: "agua"},
 					{src: "plataforma.png", id: "plataforma"},
 					{src: "virus.png", id: "virus"},
 					{src: "dragao.png", id: "dragao"},
@@ -140,6 +141,7 @@
 						"andar": [4, 9, "andar", 0.3],
 						"pular": [14, 18, "pular", 0.3],
 						"morreu": [19, 27, false, 1.5],
+						"afogou": 19,
 						"atirar": {
 							frames: [1,0,3,2],
 							next: "andar",
@@ -259,6 +261,7 @@
 
 				/* Inicia os objetos */
 				personagem.iniciar();
+				agua.iniciar();
 				plataformas.iniciar();
 				virus.novo();
 				dragao.novo();
@@ -289,6 +292,7 @@
 
    				/* Atualiza objetos */
    				personagem.update();
+   				agua.update();
    				plataformas.update();
    				tiros.update();
    				especial.update();
@@ -536,8 +540,9 @@
 				life: 100,
 				puloY: 480,
 				puloSpeed: 430,
-				especial: false,
+				especial: true,
 				dead: false,
+				afg: false,
 				plataforma: false,
 
 				iniciar: function(){
@@ -567,11 +572,14 @@
 
 						palco.removeAllEventListeners();
 
-						_personagem.gotoAndPlay("morreu");
+						if(this.afg == false)
+							_personagem.gotoAndPlay("morreu");
+						else
+							_personagem.gotoAndPlay("afogou");
 
 						_personagem.on("animationend", function(){
 
-							createjs.Tween.get(_personagem).wait(1000).to({
+							createjs.Tween.get(_personagem).wait(500).to({
 
 								alpha: 0
 
@@ -589,9 +597,28 @@
 
 				},
 
+				afogou: function(ag){
+
+					this.afg = true;
+
+					createjs.Tween.get(_personagem).to({
+
+						x: agua._ags[ag].x + 30,
+						y: cheight - chao - 15
+
+					}, 600)
+
+					.call(function(){
+
+						personagem.morreu();
+
+					});
+
+				},
+
 				update: function(){
 
-					if(this.dead == false){
+					if(this.dead == false && this.afg == false){
 
 						pos += this.speed;
 
@@ -602,7 +629,7 @@
 
 						_personagem.x += this.speed;
 
-					}else{
+					}else if(this.afg == false){
 
 						_personagem.y = cheight - chao - this.bounds().height;
 
@@ -650,9 +677,65 @@
 
 			},
 
+			agua = {
+
+				_ags: [],
+				img: "agua",
+				time: 24,
+
+				iniciar: function(){
+
+					this.img = loader.getResult(this.img);
+
+				},
+
+				novo: function(){
+
+					var ag = new createjs.Bitmap(agua.img);
+					ag.x = canvasFim + 15;
+					ag.y = cheight - chao;
+
+					agua._ags.push(ag);
+
+					traduzidos.addChild(ag);
+
+				},
+
+				caiu: function(ag){
+
+					if(_personagem.x + 15 >= this._ags[ag].x && _personagem.y + personagem.bounds().height >= this._ags[ag].y && _personagem.x + personagem.bounds().width - 15 <= this._ags[ag].x + this.img.width){
+
+						personagem.afogou(ag);
+
+					}
+
+				},
+
+				update: function(){
+
+					for(var i = 0; i < this._ags.length; i++){
+
+						if(this._ags[i].x + this.img.width < canvasInicio){
+
+							traduzidos.removeChild(this._ags[i]);
+							this._ags.splice(i,1);
+
+						}else if(personagem.plataforma === false){
+
+							this.caiu(i);
+
+						}
+
+					}
+
+				}
+
+			},
+
 			plataformas = {
 
 				_plt: [],
+				time: 8,
 				img: "plataforma",
 
 				iniciar: function(){
@@ -664,17 +747,30 @@
 
 				novo: function(){
 
+					var escolhida = 0;
+
 					setInterval(function(){
 
 						var plt = new createjs.Bitmap(plataformas.img);
 						plt.x = canvasFim;
-						plt.y = getRandom((cheight - chao - (personagem.puloY - personagem.bounds().height)),(cheight - chao - 150));
+						plt.y = getRandom((cheight - personagem.puloY) + personagem.bounds().height, cheight - chao - 150);
 
 						plataformas._plt.push(plt);
 
+						if(escolhida >= 2 && plt.y >= cheight - chao - 230){
+
+							agua.novo();
+							escolhida = 0;
+
+						}else{
+
+							escolhida++;
+
+						}
+
 						traduzidos.addChild(plt);
 
-					}, 2500);
+					}, this.time * 1000);
 
 				},
 
@@ -863,8 +959,6 @@
 
 					traduzidos.addChild(tiro);
 
-					especial.qtd--;
-
 				},
 
 				alvo: function(tiro){
@@ -948,6 +1042,7 @@
 			virus = {
 
 				_virus: [],
+				time: 5,
 				speed: 0.8,
 				life: 18,
 				damage: 35,
@@ -969,7 +1064,7 @@
 
 						traduzidos.addChild(vr);
 
-					}, 5000);
+					}, this.time * 1000);
 
 				},
 
@@ -1030,6 +1125,7 @@
 			dragao = {
 
 				_dgs: [],
+				time: 3,
 				speed: 1.6,
 				life: 30,
 				damage: 60,
@@ -1051,7 +1147,7 @@
 
 						traduzidos.addChild(dg);
 
-					}, 3000);
+					}, this.time * 1000);
 
 				},
 
@@ -1101,7 +1197,7 @@
 
 						}else{
 
-							if(escolhido == i && fogo._fogos.length == 0 && this._dgs[i].x > _personagem.x)
+							if(escolhido == i && fogo._fogos.length == 0 && (this._dgs[i].x - this._dgs[i].bounds().width) > (_personagem.x + personagem.bounds().width))
 								fogo.novo(i);
 
 							this._dgs[i].x -= this.speed;
@@ -1125,7 +1221,6 @@
 					var fogo = new createjs.Sprite(spriteFogo, "efeito");
 					fogo.x = dragao._dgs[vr].x + 30;
 					fogo.y = dragao._dgs[vr].y + 125;
-					fogo.scaleX = -1;
 					fogo.rotation = -60;
 					fogo.dragao = vr;
 
@@ -1385,6 +1480,8 @@
 					m.bounds = function(){ return spriteMoeda.getFrameBounds(this.currentFrame); };
 
 					this._moedas.push(m);
+
+					createjs.Tween.get(m).to({ y: cheight - chao - m.bounds().height }, 500);
 
 					traduzidos.addChild(m);
 
