@@ -15,7 +15,7 @@
 
 		<script src="js/ndgmr.Collision.js"></script>
 
-		<title>Game PI</title>
+		<title>Hacker vs. Vírus</title>
 
 	</head>
 
@@ -1042,7 +1042,7 @@
 			virus = {
 
 				_virus: [],
-				time: 5,
+				time: 6,
 				speed: 0.8,
 				life: 18,
 				damage: 35,
@@ -1125,7 +1125,7 @@
 			dragao = {
 
 				_dgs: [],
-				time: 3,
+				time: 5,
 				speed: 1.6,
 				life: 30,
 				damage: 60,
@@ -1232,8 +1232,8 @@
 
 					createjs.Tween.get(fogo).to({
 
-						x: _personagem.x + personagem.bounds().width + 50,
-						y: _personagem.y
+						x: _personagem.x + personagem.bounds().width + 250,
+						y: _personagem.y + 50
 
 					}, this.speed);
 
