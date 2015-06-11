@@ -79,8 +79,12 @@
 					{src: "municao.png", id: "municao"},
 					{src: "especial.png", id: "especial"},
 					{src: "fogo.png", id: "fogo"},
-					{src: "jogar.png", id: "jogar"},
-					{src: "creditos.png", id: "creditos"},
+					{src: "title.png", id: "title"},
+					{src: "titleInfo.png", id: "titleInfo"},
+					{src: "gameOver.png", id: "gameOver"},
+					{src: "record.png", id: "record"},
+					{src: "play.png", id: "jogar"},
+					{src: "infos.png", id: "creditos"},
 					{src: "back.png", id: "back"}
 				];
 
@@ -351,15 +355,15 @@
 				container: new createjs.Container(),
 				startButton: "jogar",
 				creditosButton: "creditos",
-				title: new createjs.Text(nome, "100px Comic Sans", "#fff"),
+				title: "title",
 				shadow: new createjs.Shadow("red", 8, 8, 15),
 
 				iniciar: function(){
 
-					/* Sombra do texto */
-					this.title.shadow = this.shadow;
+					/* Título */
+					this.title = new createjs.Bitmap(loader.getResult(this.title));
 
-					/* Definições do texto */
+					/* Definições do Título */
 					this.title.x = (cwidth - this.title.getBounds().width) / 2;
 					this.title.y = 100;
 
@@ -412,20 +416,20 @@
 
 				container: new createjs.Container(),
 				backButton: "back",
-				title: new createjs.Text("Créditos", "100px Comic Sans", "#fff"),
+				title: "titleInfo",
 				infos: new createjs.Text("Guilherme de Oliveira Gonzaga\nAlexandre Silvério Maximiliano\nHenrique Moreira", "35px Comic Sans", "#fff"),
 				shadow: menu.shadow.clone(),
 
 				iniciar: function(){
 
-					/* Sombra do texto */
-					this.title.shadow = this.shadow;
+					/* Título */
+					this.title = new createjs.Bitmap(loader.getResult(this.title));
 
-					/* Definições do texto */
+					/* Definições do Título */
 					this.title.x = (cwidth - this.title.getBounds().width) / 2;
 					this.title.y = 100;
 
-					/* Definições do texto */
+					/* Definições do Título */
 					this.infos.x = cwidth / 2;
 					this.infos.y = 280;
 					this.infos.textAlign = 'center';
@@ -465,34 +469,40 @@
 
 				container: new createjs.Container(),
 				restartButton: "jogar",
-				title: new createjs.Text("Game Over", "100px Comic Sans", "#fff"),
-				score: new createjs.Text("Pontos: ", "35px Comic Sans", "#fff"),
-				record: new createjs.Text("Seu record é: ", "35px Comic Sans", "#fff"),
+				title: "gameOver",
+				box: "record",
+				score: new createjs.Text("Pontos: ", "24px Comic Sans", "#000"),
+				record: new createjs.Text("Seu record é: ", "24px Comic Sans", "#000"),
 				shadow: menu.shadow.clone(),
 
 				iniciar: function(){
 
-					/* Sombra do texto */
-					this.title.shadow = this.shadow;
+					/* Título */
+					this.title = new createjs.Bitmap(loader.getResult(this.title));
 
-					/* Definições do texto */
+					/* Definições do Título */
 					this.title.x = (cwidth - this.title.getBounds().width) / 2;
 					this.title.y = 100;
 
+					/* Box */
+					this.box = new createjs.Bitmap(loader.getResult(this.box));
+					this.box.x = (cwidth - this.box.getBounds().width) / 2;
+					this.box.y = 220;
+
 					/* Pontos */
-					this.score.x = (cwidth - this.score.getBounds().width) / 2;
-					this.score.y = 280;
+					this.score.x = this.box.x + ((this.box.getBounds().width / 2) - (this.score.getBounds().width / 2));
+					this.score.y = 320;
 
 					/* Record */
-					this.record.x = (cwidth - this.record.getBounds().width) / 2;
-					this.record.y = 320;
+					this.record.x = this.box.x + ((this.box.getBounds().width / 2) - (this.record.getBounds().width / 2));
+					this.record.y = 346;
 
 					/* Imagens dos creditos */
 					this.restartButton = new createjs.Bitmap(loader.getResult(this.restartButton));
 
 					/* Definições do botão de voltar */
 					this.restartButton.x = (cwidth - this.restartButton.getBounds().width) / 2;
-					this.restartButton.y = 400;
+					this.restartButton.y = 430;
 
 				},
 
@@ -517,7 +527,7 @@
 					this.restartButton.addEventListener("click", function(){ window.location.reload(); });
 
 					/* Adiciona as imagens no container creditos */
-					this.container.addChild(bg, this.restartButton, this.title, this.score, this.record);
+					this.container.addChild(bg, this.restartButton, this.title, this.box, this.score, this.record);
 
 					/* Remove tudo da canvas */
 					palco.removeAllEventListeners();
